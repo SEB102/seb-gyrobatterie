@@ -9,7 +9,9 @@ Le gyroscope est lu dans une page web sur le téléphone, les coups partent vers
 
 **Téléphone** (iPhone ou Android) : scanner le QR code avec l'appareil photo. Aucun avertissement de sécurité. **L'ordinateur et les téléphones doivent être connectés au même réseau Wi-Fi.**
 - iPhone : toucher « Toucher pour démarrer » puis autoriser « Mouvement ». Android : démarre tout seul.
-- La première fois : **donner 3 coups secs**, comme avec une baguette, dans n'importe quel sens (calibration). Chaque coup reconnu s'affiche (● ○ ○), et c'est fini dès le 3e (voir plus bas). Puis jouer.
+- La première fois : **calibration guidée** : l'écran demande **2 coups secs vers le BAS, puis 2 vers le HAUT** (↓ ↓ ↑ ↑), en tenant le téléphone comme pour jouer. Elle recommence si les 4 coups ne sont pas tous nets.
+- **Écran noir verrouillé** (bouton sur le téléphone) : écran entièrement noir, touchers ignorés, on continue de jouer ; **appui long de 2 s** pour revenir. L'écran reste allumé pendant le jeu.
+- **« Voulez-vous fermer l'onglet ? » quand on agite le téléphone** : fonction « Secouer pour annuler » de l'iPhone, à couper dans **Réglages → Accessibilité → Toucher → Secouer pour annuler**.
 - Pour la suite : ajouter la page à l'écran d'accueil (iPhone : Partager → « Sur l'écran d'accueil » ; Android : ⋮ → « Ajouter à l'écran d'accueil »). L'ordinateur garde le même code d'une fois sur l'autre, donc l'icône retrouve toujours le même ordinateur.
 
 Il faut Internet au moment de la mise en relation (serveur public gratuit PeerJS) ; ensuite les coups passent directement d'un appareil à l'autre (WebRTC).
@@ -24,9 +26,9 @@ Sans le raccourci : `node serveur.js` puis `http://localhost:8080`. Nécessite N
 
 ## Calibration (sur le téléphone)
 
-Les navigateurs ne nomment pas les axes de la même façon, certains anciens donnent des radians au lieu de degrés, et quelques téléphones n'ont pas de gyroscope (accéléromètre seul). Au premier lancement, la page demande donc 3 coups secs et en déduit l’axe et l’échelle ; les coups reconnus s’affichent un par un. Si aucun coup franc n’est reconnu en 10 s, elle le dit et recommence. Bouton **Refaire la calibration** si on change de prise en main.
+Les navigateurs ne nomment pas les axes de la même façon, certains anciens donnent des radians au lieu de degrés, et quelques téléphones n'ont pas de gyroscope (accéléromètre seul). Au premier lancement, la calibration guidée demande 2 coups vers le bas puis 2 vers le haut : elle apprend l'axe de rotation, la force d'un coup et quel sens de rotation veut dire « bas ». Bouton **Refaire la calibration** si on change franchement de prise en main.
 
-- **Sensibilité** (0 à 100 %, 100 % = le geste le plus léger suffit) : réglable **uniquement sur le téléphone** ; l'ordinateur l'affiche (« Sensibilité du téléphone ») et le seuil apparaît en pointillés sur la trace.
+- **Sensibilité** (0 à 100 %, **80 % par défaut**, 100 % = le geste le plus léger suffit) : réglable **uniquement sur le téléphone** ; l'ordinateur l'affiche (« Sensibilité du téléphone ») et le seuil apparaît en pointillés sur la trace.
 
 Touches **B** et **H** sur l'ordinateur pour tester les sons sans téléphone.
 
@@ -52,11 +54,11 @@ Case à cocher sur le téléphone : le coup part **dès que le geste dépasse le
 
 Mesures (navigateur, gestes simulés à 60 mesures/s) : environ **78 ms de gagnés** en moyenne (de 33 à 133 ms selon la vitesse du geste ; plus le geste est lent, plus le gain est grand). Désactivée par défaut : le mode « sommet » reste inchangé.
 
-## Grosse caisse en bas, cymbale en haut (3D)
+## Grosse caisse en bas, cymbale en haut
 
-C'est le **sens du coup dans la pièce** qui décide : un coup qui part **vers le sol** joue la grosse caisse, un coup **vers le plafond** la cymbale, quelle que soit la façon de tenir le téléphone (bras levé et téléphone pointé vers le haut, un coup vers le bas reste une grosse caisse). Le téléphone projette sa propre accélération sur la direction de la gravité et en déduit la vitesse verticale du geste (`creerVerticale` dans `detecteur.js`) ; le moment du coup reste donné par le gyroscope. Testé dans 7 inclinaisons du téléphone, avec les deux conventions de signe des navigateurs, et sur les téléphones sans mesure d'accélération « sans gravité ».
+Un coup **vers le bas** joue la grosse caisse, un coup **vers le haut** la cymbale. C'est le **sens de rotation du poignet** qui décide : un coup vers le bas plie toujours le poignet de la même façon, même bras levé. La calibration guidée (2 coups vers le bas, puis 2 vers le haut) apprend quel sens de rotation veut dire « bas » sur ce téléphone et avec cette tenue.
 
-**Le bout de la « baguette ».** Mesurer seulement le mouvement du téléphone ne suffit pas : quand le bras tourne vite, le téléphone est tiré vers le coude (effet « manège »), ce qui faisait lire « vers le bas » un coup vers le haut donné bras levé (constaté sur iPhone le 21/10/2026). La calibration apprend donc aussi **quel axe du téléphone sert de baguette** (celui dont la rotation produit le mouvement le plus vertical : le long du téléphone s'il est tenu comme une baguette, en travers s'il est tenu debout dans le poing). À chaque coup, le sens vient de la vitesse du bout de cette baguette : instantané, sans dérive. Une calibration faite avant cette correction est refaite automatiquement une fois. Vérifié sur de vraies mesures d'iPhone (`mesures-iphone.json`) : 24 coups sur 25 dans le sens du geste, contre presque tous en grosse caisse avant.
+Historique : une version précédente déduisait le sens de la gravité et d'un axe « baguette » appris. Sur un iPhone tenu debout dans la main (enregistrement du 21/10/2026), cet axe était presque vertical et la décision basculait toute seule au moindre mouvement (« tout devient grosse caisse ou cymbale » au bout de 20 à 30 s). Le sens de rotation, lui, reste juste même quand la tenue varie : vérifié en simulation jusqu'à 60° de rotation du téléphone dans la main et ±45° d'inclinaison, en mode « sommet » et « précoce ».
 
 ## Licence
 
@@ -70,4 +72,4 @@ SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · [CC BY-NC 4.0](LICENSE) : 
 - `serveur.js` : serveur de la version locale (HTTPS téléphone + HTTP Mac + WebSocket, aucune dépendance npm)
 - `LANCER GYRO-BATTERIE.command` : lanceur de la version locale (le fichier du Bureau en est un lien)
 - `qrcode.js` (Kazuhiko Arase, MIT) · `peerjs.min.js` (PeerJS 1.5.5, MIT)
-- `test.js` : `node test.js` (47 tests : détection, déclenchement précoce, sens 3D et baguette (dont vraies mesures d'iPhone), calibration dans 5 configurations de capteur, relais dans les deux sens, adresses, certificat)
+- `test.js` : `node test.js` (55 tests : détection, déclenchement précoce, sens 3D, baguette, calibration guidée et sens par rotation (dont vraies mesures d'iPhone), calibration dans 5 configurations de capteur, relais dans les deux sens, adresses, certificat)
