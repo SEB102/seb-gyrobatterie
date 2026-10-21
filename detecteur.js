@@ -86,7 +86,13 @@
     return { axe: meilleur.axe, signe: somme > 0 ? -1 : 1, facteur: CIBLE / mediane(vrais.map((x) => x.pic)), coups: vrais.length };
   }
 
-  const api = { creerDetecteur, calibrer, REGLAGES_DEFAUT };
+  // Les sons alternent, quel que soit le sens du coup : grosse caisse, cymbale, grosse caisse…
+  function creerAlternance() {
+    let n = 0;
+    return () => (n++ % 2 === 0 ? 'grosse-caisse' : 'cymbale');
+  }
+
+  const api = { creerDetecteur, calibrer, creerAlternance, REGLAGES_DEFAUT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else racine.Detecteur = api;
 })(this);

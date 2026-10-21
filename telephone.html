@@ -40,8 +40,7 @@
   <span>3</span><div class="jauge"><i id="j2"></i></div>
 </div>
 <div class="reglages">
-  <button id="calibrer" class="secondaire">Recalibrer (3 coups vers le bas)</button>
-  <label><input type="checkbox" id="inverser"> Inverser haut / bas</label>
+  <button id="calibrer" class="secondaire">Recalibrer (3 coups)</button>
   <label>Sensibilité <input type="range" id="seuil" min="120" max="600" step="10"> <span id="vseuil"></span></label>
 </div>
 
@@ -51,14 +50,13 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const memo = (() => { try { return JSON.parse(localStorage.getItem('gyro-batterie') || '{}'); } catch { return {}; } })();
-const reglages = { inverser: !!memo.inverser, seuil: memo.seuil || 250, calibration: memo.calibration || null };
+const reglages = { seuil: memo.seuil || 250, calibration: memo.calibration || null };
+const prochainSon = Detecteur.creerAlternance();   // grosse caisse, cymbale, grosse caisse…
 const sauver = () => { try { localStorage.setItem('gyro-batterie', JSON.stringify(reglages)); } catch {} };
 
-$('inverser').checked = reglages.inverser;
 $('seuil').value = 720 - reglages.seuil; $('vseuil').textContent = reglages.seuil;
 
 let detecteur = Detecteur.creerDetecteur({ seuil: reglages.seuil });
-$('inverser').onchange = (e) => { reglages.inverser = e.target.checked; sauver(); };
 $('seuil').oninput = (e) => {   // curseur à droite = plus sensible = seuil plus bas
   reglages.seuil = 720 - Number(e.target.value); $('vseuil').textContent = reglages.seuil;
   detecteur = Detecteur.creerDetecteur({ seuil: reglages.seuil }); sauver();
@@ -96,7 +94,7 @@ function suivreCalibration(lu, t) {
   if (t < calibration.debut) return;   // pause après un essai raté, le message reste affiché
   calibration.echantillons.push({ t, axes: lu.axes });
   const reste = Math.ceil((DUREE_CALIBRATION - (t - calibration.debut)) / 1000);
-  $('flash').textContent = `Frappe 3 fois VERS LE BAS… ${reste}`;
+  $('flash').textContent = `Frappe 3 fois… ${reste}`;
   if (t - calibration.debut < DUREE_CALIBRATION) return;
   const res = Detecteur.calibrer(calibration.echantillons);
   if (!res) {
@@ -124,11 +122,12 @@ function surMouvement(e) {
   const cal = reglages.calibration;
   if (!cal || cal.source !== lu.source) return lancerCalibration();
 
-  const vitesse = lu.axes[cal.axe] * cal.signe * cal.facteur * (reglages.inverser ? -1 : 1);
+  const vitesse = lu.axes[cal.axe] * cal.signe * cal.facteur;
   const coup = detecteur.traiter(vitesse, t);
   if (coup) {
-    envoyer({ coup: coup.type, force: coup.force });
-    const gc = coup.type === 'grosse-caisse';
+    const son = prochainSon();   // le sens du geste ne compte plus
+    envoyer({ coup: son, force: coup.force });
+    const gc = son === 'grosse-caisse';
     $('flash').textContent = gc ? 'GROSSE CAISSE' : 'CYMBALE';
     $('flash').style.background = gc ? 'var(--gc)' : 'var(--cy)';
     $('flash').style.color = '#111';

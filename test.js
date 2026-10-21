@@ -133,6 +133,16 @@ test('calibration : téléphone immobile ou un seul coup → refusée', () => {
   assert.strictEqual(calibrer([]), null);
 });
 
+// ---- Alternance : chaque coup, dans n'importe quel sens, alterne grosse caisse / cymbale ----
+test('alternance : bas, bas, haut, bas, haut → GC, CY, GC, CY, GC (rebonds non comptés)', () => {
+  const { creerAlternance } = require('./detecteur.js');
+  const prochain = creerAlternance();
+  const sig = signal([[50, zero], [160, coupGyro(-800)], [400, zero], [160, coupGyro(-800)], [400, zero],
+    [160, coupGyro(800)], [400, zero], [160, coupGyro(-600)], [400, zero], [160, coupGyro(900)], [300, zero]]);
+  const sons = passer(sig).map(() => prochain());
+  assert.deepStrictEqual(sons, ['grosse-caisse', 'cymbale', 'grosse-caisse', 'cymbale', 'grosse-caisse']);
+});
+
 // ---- Serveur : relais téléphone → ordinateur ----
 (async () => {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
