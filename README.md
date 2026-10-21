@@ -50,7 +50,7 @@ Créé au premier lancement (`cert.pem`, `cle.pem`, jamais publiés), recréé t
 
 ## Déclenchement précoce (toujours actif)
 
-Le coup part **dès que le geste dépasse le seuil**, sans attendre le sommet du geste : environ **78 ms de gagnés** en moyenne (de 33 à 133 ms selon la vitesse du geste ; mesuré dans le navigateur à 60 mesures/s). Ce n'est plus une option : c'est le seul mode, depuis le 21/10/2026. La force du coup est estimée d'après la vitesse et son accélération à cet instant. Le téléphone affiche à chaque coup le temps gagné (« Gain mesuré »).
+Le coup part **dès que le geste dépasse le seuil**, sans attendre le sommet du geste : environ **78 ms de gagnés** en moyenne (de 33 à 133 ms selon la vitesse du geste ; mesuré dans le navigateur à 60 mesures/s). Ce n'est plus une option : c'est le seul mode, depuis le 21/10/2026. La force du coup est estimée d'après la vitesse et son accélération à cet instant.
 
 ## Grosse caisse en bas, cymbale en haut
 
