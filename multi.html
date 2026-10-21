@@ -29,6 +29,7 @@
   .tel select { flex: 1; font: inherit; font-size: 14px; padding: 6px; background: #262626; color: var(--texte); border: 1px solid #333; border-radius: 6px; }
   .vide { color: var(--doux); font-size: 14px; padding: 30px; text-align: center; background: var(--carte); border-radius: 14px; }
   @media (max-width: 500px) { .connexion { flex-direction: column; align-items: stretch; } #qr svg { margin: 0 auto; } }
+  .reseau { font-size: 15px; font-weight: 600; color: #e8c43c; }
   .cartouche { margin-top: 28px; border-top: 1px solid #2a2a2a; text-align: center; color: var(--doux); font-size: 12px; letter-spacing: .12em; line-height: 1.7; padding: 10px 12px 0; }
   .cartouche a { color: #a9b6ff; text-decoration: underline; text-underline-offset: 3px; }
   .cartouche a:hover { color: #fff; }
@@ -40,6 +41,7 @@
   <div class="connexion">
     <div id="qr"></div>
     <div>
+      <div class="reseau">L'ordinateur et les téléphones doivent être connectés au même réseau Wi-Fi.</div>
       <div class="doux">Chaque téléphone scanne ce QR code (iPhone et Android mélangés) :</div>
       <div id="adresse">…</div>
       <div id="etat" class="doux"></div>

@@ -7,7 +7,7 @@ Le gyroscope est lu dans une page web sur le téléphone, les coups partent vers
 
 **Ordinateur** (Mac, Windows, Linux — Chrome, Edge, Firefox ou Safari) : ouvrir **https://seb102.github.io/gyro-batterie/**. Rien à installer. Cliquer une fois dans la page pour activer le son.
 
-**Téléphone** (iPhone ou Android, Wi-Fi ou 4G/5G) : scanner le QR code avec l'appareil photo. Aucun avertissement de sécurité.
+**Téléphone** (iPhone ou Android) : scanner le QR code avec l'appareil photo. Aucun avertissement de sécurité. **L'ordinateur et les téléphones doivent être connectés au même réseau Wi-Fi.**
 - iPhone : toucher « Toucher pour démarrer » puis autoriser « Mouvement ». Android : démarre tout seul.
 - La première fois : **frapper 3 fois** (calibration, voir plus bas), puis jouer.
 - Pour la suite : ajouter la page à l'écran d'accueil (iPhone : Partager → « Sur l'écran d'accueil » ; Android : ⋮ → « Ajouter à l'écran d'accueil »). L'ordinateur garde le même code d'une fois sur l'autre, donc l'icône retrouve toujours le même ordinateur.
