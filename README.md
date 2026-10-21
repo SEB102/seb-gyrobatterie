@@ -1,6 +1,6 @@
 # SEB-GYROBATTERIE
 
-Le téléphone sert de baguette : chaque coup sec, dans n’importe quel sens, joue à tour de rôle **grosse caisse**, **cymbale**, grosse caisse, cymbale…
+Le téléphone sert de baguette : un coup sec **vers le sol** joue la **grosse caisse**, un coup **vers le plafond** la **cymbale**, quelle que soit la tenue du téléphone.
 Le gyroscope est lu dans une page web sur le téléphone, les coups partent vers l'ordinateur qui joue les sons (synthétisés, aucun fichier audio). La vitesse du geste règle le volume.
 
 ## Version en ligne (recommandée) — tout ordinateur, tout téléphone
@@ -40,7 +40,7 @@ Une page web ne peut pas émettre en Bluetooth (elle peut seulement se connecter
 
 ## Détection (`detecteur.js`)
 
-Le coup part au sommet du geste (dès que la vitesse retombe), puis il faut revenir au calme pour réarmer. Le sens opposé est ignoré 180 ms après un coup, pour que le rebond du poignet ne compte pas comme un deuxième coup. Conséquence : un aller-retour en moins de 180 ms ne compte qu’une fois. Les sons alternent ensuite à chaque coup (`creerAlternance`).
+Le coup part au sommet du geste (dès que la vitesse retombe), puis il faut revenir au calme pour réarmer. Le sens opposé est ignoré 180 ms après un coup, pour que le rebond du poignet ne compte pas comme un deuxième coup. Conséquence : un aller-retour en moins de 180 ms ne compte qu’une fois. Le sens vertical du geste choisit ensuite le son (voir « Grosse caisse en bas, cymbale en haut »).
 
 ## Certificat (version locale)
 
@@ -51,6 +51,10 @@ Créé au premier lancement (`cert.pem`, `cle.pem`, jamais publiés), recréé t
 Case à cocher sur le téléphone : le coup part **dès que le geste dépasse le seuil**, au lieu d'attendre le sommet du geste. La force du coup est alors estimée d'après la vitesse et son accélération à cet instant (un peu moins fidèle). Le téléphone mesure à chaque coup le temps gagné et affiche la moyenne.
 
 Mesures (navigateur, gestes simulés à 60 mesures/s) : environ **78 ms de gagnés** en moyenne (de 33 à 133 ms selon la vitesse du geste ; plus le geste est lent, plus le gain est grand). Désactivée par défaut : le mode « sommet » reste inchangé.
+
+## Grosse caisse en bas, cymbale en haut (3D)
+
+C'est le **sens du coup dans la pièce** qui décide : un coup qui part **vers le sol** joue la grosse caisse, un coup **vers le plafond** la cymbale, quelle que soit la façon de tenir le téléphone (bras levé et téléphone pointé vers le haut, un coup vers le bas reste une grosse caisse). Le téléphone projette sa propre accélération sur la direction de la gravité et en déduit la vitesse verticale du geste (`creerVerticale` dans `detecteur.js`) ; le moment du coup reste donné par le gyroscope. Testé dans 7 inclinaisons du téléphone, avec les deux conventions de signe des navigateurs, et sur les téléphones sans mesure d'accélération « sans gravité ».
 
 ## Licence
 
@@ -64,4 +68,4 @@ SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · [CC BY-NC 4.0](LICENSE) : 
 - `serveur.js` : serveur de la version locale (HTTPS téléphone + HTTP Mac + WebSocket, aucune dépendance npm)
 - `LANCER GYRO-BATTERIE.command` : lanceur de la version locale (le fichier du Bureau en est un lien)
 - `qrcode.js` (Kazuhiko Arase, MIT) · `peerjs.min.js` (PeerJS 1.5.5, MIT)
-- `test.js` : `node test.js` (32 tests : détection, déclenchement précoce, alternance, calibration dans 5 configurations de capteur, relais dans les deux sens, adresses, certificat)
+- `test.js` : `node test.js` (39 tests : détection, déclenchement précoce, sens 3D, calibration dans 5 configurations de capteur, relais dans les deux sens, adresses, certificat)
