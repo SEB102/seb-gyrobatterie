@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gyro-batterie</title>
+<style>
+  :root { --fond: #111; --texte: #eee; --gc: #e8643c; --cy: #e8c43c; --doux: #888; --carte: #1c1c1c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--texte); font: 16px -apple-system, system-ui, sans-serif; padding: 24px 16px; }
+  main { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+  h1 { margin: 0; font-size: 26px; }
+  .doux { color: var(--doux); font-size: 14px; }
+  #adresse { font: 15px ui-monospace, Menlo, monospace; background: var(--carte); padding: 10px 12px; border-radius: 8px; word-break: break-all; }
+  #etat.ok { color: #6c6; }
+  .connexion { display: flex; gap: 16px; align-items: center; }
+  .connexion > div:last-child { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  #qr svg { display: block; width: 150px; height: 150px; border-radius: 8px; }
+  @media (max-width: 500px) { .connexion { flex-direction: column; align-items: stretch; } #qr svg { margin: 0 auto; } }
+  button { font: inherit; font-size: 18px; padding: 14px 20px; border: 0; border-radius: 10px; background: #2a6; color: #fff; cursor: pointer; }
+  .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pad { height: 180px; border-radius: 16px; background: var(--carte); display: flex; flex-direction: column; align-items: center;
+         justify-content: center; gap: 6px; font-size: 22px; font-weight: 600; transition: background .3s, transform .08s; cursor: pointer; }
+  .pad small { font-size: 13px; font-weight: 400; color: var(--doux); }
+  .pad.actif { transition: none; color: #111; transform: scale(.98); }
+  #pgc.actif { background: var(--gc); } #pcy.actif { background: var(--cy); }
+  #pgc.actif small, #pcy.actif small { color: #333; }
+  canvas { width: 100%; height: 160px; background: var(--carte); border-radius: 12px; display: block; }
+  @media (max-width: 500px) { .pad { height: 130px; font-size: 18px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Gyro-batterie</h1>
+  <div class="connexion">
+    <div id="qr"></div>
+    <div>
+      <div class="doux" id="consigne"></div>
+      <div id="adresse">…</div>
+    </div>
+  </div>
+  <div id="etat" class="doux">Aucun téléphone connecté</div>
+  <button id="activer">Activer le son</button>
+  <div class="pads">
+    <div class="pad" id="pcy">CYMBALE<small>coup vers le haut · touche H</small></div>
+    <div class="pad" id="pgc">GROSSE CAISSE<small>coup vers le bas · touche B</small></div>
+  </div>
+  <div>
+    <div class="doux" style="margin-bottom:6px">Vitesse de rotation reçue (pointillés = seuil de déclenchement)</div>
+    <canvas id="trace"></canvas>
+  </div>
+</main>
+
+<script src="sons.js"></script>
+<script src="qrcode.js"></script>
+<script src="peerjs.min.js"></script>
+<script src="liaison.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+function afficherAdresses(l) {
+  $('adresse').textContent = l.join('\n') || 'aucune adresse Wi-Fi trouvée';
+  if (!l.length) return;
+  const qr = qrcode(0, 'M'); qr.addData(l[0]); qr.make();
+  $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+}
+$('consigne').textContent = Liaison.modeEnLigne()
+  ? 'Scanner avec l\'appareil photo du téléphone (Wi-Fi ou 4G/5G), ou ouvrir :'
+  : 'Scanner avec l\'appareil photo du téléphone (même Wi-Fi), ou ouvrir :';
+
+// Son : démarre tout seul si le navigateur l'autorise (lancement par le raccourci),
+// sinon au premier clic ou à la première touche n'importe où dans la page.
+const ctx = new AudioContext({ latencyHint: 'interactive' });
+const sons = creerSons(ctx);
+function majSon() { $('activer').style.display = ctx.state === 'running' ? 'none' : ''; }
+ctx.onstatechange = majSon; majSon();
+const debloquer = () => { if (ctx.state !== 'running') ctx.resume(); };
+addEventListener('pointerdown', debloquer); addEventListener('keydown', debloquer);
+
+const timers = {};
+function jouer(type, force) {
+  (type === 'grosse-caisse' ? sons.grosseCaisse : sons.cymbale)(force);
+  const pad = $(type === 'grosse-caisse' ? 'pgc' : 'pcy');
+  pad.classList.add('actif'); clearTimeout(timers[type]);
+  timers[type] = setTimeout(() => pad.classList.remove('actif'), 90);
+}
+$('pgc').onclick = () => jouer('grosse-caisse', 0.7);
+$('pcy').onclick = () => jouer('cymbale', 0.7);
+addEventListener('keydown', (e) => {
+  if (e.repeat) return;
+  if (e.key === 'b' || e.key === 'B') jouer('grosse-caisse', 0.7);
+  if (e.key === 'h' || e.key === 'H') jouer('cymbale', 0.7);
+});
+
+// ---- Trace de la vitesse ----
+const histo = new Array(200).fill(0); let seuil = 250;
+const cv = $('trace'), g = cv.getContext('2d');
+function dessiner() {
+  const w = cv.width = cv.clientWidth * devicePixelRatio, h = cv.height = cv.clientHeight * devicePixelRatio;
+  const echelle = h / 2 / 1200, mi = h / 2;
+  g.strokeStyle = '#444'; g.setLineDash([6, 6]); g.lineWidth = 1;
+  for (const y of [mi - seuil * echelle, mi + seuil * echelle]) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  g.setLineDash([]); g.strokeStyle = '#48f'; g.lineWidth = 2 * devicePixelRatio; g.beginPath();
+  histo.forEach((v, i) => { const x = i / (histo.length - 1) * w, y = mi - Math.max(-1200, Math.min(1200, v)) * echelle; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.stroke();
+  requestAnimationFrame(dessiner);
+}
+dessiner();
+
+// ---- Réception (serveur local ou en ligne, voir liaison.js) ----
+let telephones = 0;
+const afficherTelephones = () => {
+  $('etat').textContent = telephones ? `Téléphone connecté${telephones > 1 ? ` (${telephones})` : ''}` : 'Aucun téléphone connecté';
+  $('etat').className = telephones ? 'ok' : 'doux';
+};
+Liaison.ordinateur({
+  surMessage(d) {
+    if (d.coup) jouer(d.coup, d.force);
+    if (typeof d.v === 'number') { histo.push(d.v); histo.shift(); if (d.seuil) seuil = d.seuil; }
+  },
+  surTelephones(n) { telephones = n; afficherTelephones(); },
+  surAdresses: afficherAdresses,
+  surProbleme(texte) { if (texte) { $('etat').textContent = texte; $('etat').className = 'doux'; } else afficherTelephones(); },
+});
+</script>
+</body>
+</html>

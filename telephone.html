@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Gyro-batterie — téléphone</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gyro-batterie">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#111111">
+<style>
+  :root { --fond: #111; --texte: #eee; --gc: #e8643c; --cy: #e8c43c; --doux: #888; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--texte); font: 16px -apple-system, system-ui, sans-serif;
+         min-height: 100vh; display: flex; flex-direction: column; padding: 16px; gap: 14px; -webkit-user-select: none; user-select: none; }
+  h1 { font-size: 20px; margin: 0; }
+  #etat { color: var(--doux); font-size: 14px; }
+  #etat.ok { color: #6c6; }
+  button { font: inherit; font-size: 20px; padding: 18px; border: 0; border-radius: 12px; background: #2a6; color: #fff; }
+  button.secondaire { font-size: 15px; padding: 12px; background: #2a2a2a; color: var(--texte); }
+  #flash { flex: 1; min-height: 160px; border-radius: 16px; background: #1c1c1c; display: flex; align-items: center;
+           justify-content: center; font-size: 28px; font-weight: 600; transition: background .25s; }
+  .jauges { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--doux); }
+  .jauge { height: 10px; background: #222; border-radius: 5px; position: relative; overflow: hidden; }
+  .jauge i { position: absolute; top: 0; bottom: 0; left: 50%; background: #48f; }
+  label { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--doux); }
+  select, input[type=range] { flex: 1; font: inherit; }
+  .reglages { display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<h1>Gyro-batterie</h1>
+<div id="etat">Non connecté</div>
+<button id="demarrer">Démarrer</button>
+<div id="flash">—</div>
+<div class="jauges">
+  <span>1</span><div class="jauge"><i id="j0"></i></div>
+  <span>2</span><div class="jauge"><i id="j1"></i></div>
+  <span>3</span><div class="jauge"><i id="j2"></i></div>
+</div>
+<div class="reglages">
+  <button id="calibrer" class="secondaire">Recalibrer (3 coups vers le bas)</button>
+  <label><input type="checkbox" id="inverser"> Inverser haut / bas</label>
+  <label>Sensibilité <input type="range" id="seuil" min="120" max="600" step="10"> <span id="vseuil"></span></label>
+</div>
+
+<script src="detecteur.js"></script>
+<script src="peerjs.min.js"></script>
+<script src="liaison.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const memo = (() => { try { return JSON.parse(localStorage.getItem('gyro-batterie') || '{}'); } catch { return {}; } })();
+const reglages = { inverser: !!memo.inverser, seuil: memo.seuil || 250, calibration: memo.calibration || null };
+const sauver = () => { try { localStorage.setItem('gyro-batterie', JSON.stringify(reglages)); } catch {} };
+
+$('inverser').checked = reglages.inverser;
+$('seuil').value = 720 - reglages.seuil; $('vseuil').textContent = reglages.seuil;
+
+let detecteur = Detecteur.creerDetecteur({ seuil: reglages.seuil });
+$('inverser').onchange = (e) => { reglages.inverser = e.target.checked; sauver(); };
+$('seuil').oninput = (e) => {   // curseur à droite = plus sensible = seuil plus bas
+  reglages.seuil = 720 - Number(e.target.value); $('vseuil').textContent = reglages.seuil;
+  detecteur = Detecteur.creerDetecteur({ seuil: reglages.seuil }); sauver();
+};
+
+let liaison = null;
+const envoyer = (o) => liaison && liaison.envoyer(o);
+const etat = (texte, ok) => { $('etat').textContent = texte; $('etat').className = ok ? 'ok' : ''; };
+
+// ---- Lecture du capteur, quel que soit le téléphone ----
+// Gyroscope si présent ; sinon accéléromètre (sans gravité, ou avec gravité retirée par un filtre).
+let gravite = null;
+function lireAxes(e) {
+  const r = e.rotationRate;
+  if (r && [r.alpha, r.beta, r.gamma].some((v) => typeof v === 'number')) return { source: 'gyro', axes: [r.alpha || 0, r.beta || 0, r.gamma || 0] };
+  const a = e.acceleration;
+  if (a && typeof a.x === 'number') return { source: 'accel', axes: [a.x, a.y || 0, a.z || 0] };
+  const g = e.accelerationIncludingGravity;
+  if (g && typeof g.x === 'number') {
+    const brut = [g.x, g.y || 0, g.z || 0];
+    gravite = gravite ? gravite.map((v, i) => 0.9 * v + 0.1 * brut[i]) : brut;
+    return { source: 'accelg', axes: brut.map((v, i) => v - gravite[i]) };
+  }
+  return null;
+}
+
+// ---- Calibration : 3 coups vers le bas ----
+const DUREE_CALIBRATION = 4500;
+let calibration = null;   // { debut, echantillons } pendant la calibration
+function lancerCalibration() {
+  calibration = { debut: performance.now(), echantillons: [] };
+  $('flash').style.background = '#234'; $('flash').style.color = '';
+}
+function suivreCalibration(lu, t) {
+  if (t < calibration.debut) return;   // pause après un essai raté, le message reste affiché
+  calibration.echantillons.push({ t, axes: lu.axes });
+  const reste = Math.ceil((DUREE_CALIBRATION - (t - calibration.debut)) / 1000);
+  $('flash').textContent = `Frappe 3 fois VERS LE BAS… ${reste}`;
+  if (t - calibration.debut < DUREE_CALIBRATION) return;
+  const res = Detecteur.calibrer(calibration.echantillons);
+  if (!res) {
+    $('flash').textContent = 'Pas compris, on recommence';
+    calibration = { debut: t + 1500, echantillons: [] };
+    return;
+  }
+  reglages.calibration = { ...res, source: lu.source }; sauver();
+  calibration = null;
+  $('flash').style.background = ''; $('flash').textContent = 'Prêt : frappe !';
+}
+
+// ---- Jeu ----
+let dernierEnvoi = 0, timerFlash, maxAxes = [1, 1, 1], recu = false;
+function surMouvement(e) {
+  const lu = lireAxes(e); if (!lu) return;
+  recu = true;
+  const t = performance.now();
+  lu.axes.forEach((v, i) => {   // jauges : chaque axe relativement à son maximum
+    maxAxes[i] = Math.max(maxAxes[i], Math.abs(v));
+    const n = v / maxAxes[i], el = $('j' + i);
+    el.style.left = (n < 0 ? 50 + n * 50 : 50) + '%'; el.style.width = Math.abs(n) * 50 + '%';
+  });
+  if (calibration) return suivreCalibration(lu, t);
+  const cal = reglages.calibration;
+  if (!cal || cal.source !== lu.source) return lancerCalibration();
+
+  const vitesse = lu.axes[cal.axe] * cal.signe * cal.facteur * (reglages.inverser ? -1 : 1);
+  const coup = detecteur.traiter(vitesse, t);
+  if (coup) {
+    envoyer({ coup: coup.type, force: coup.force });
+    const gc = coup.type === 'grosse-caisse';
+    $('flash').textContent = gc ? 'GROSSE CAISSE' : 'CYMBALE';
+    $('flash').style.background = gc ? 'var(--gc)' : 'var(--cy)';
+    $('flash').style.color = '#111';
+    clearTimeout(timerFlash);
+    timerFlash = setTimeout(() => { $('flash').style.background = ''; $('flash').style.color = ''; }, 150);
+  }
+  if (t - dernierEnvoi > 30) { dernierEnvoi = t; envoyer({ v: Math.round(vitesse), seuil: reglages.seuil }); }
+}
+$('calibrer').onclick = lancerCalibration;
+
+// Autorisation des mouvements : l'iPhone exige un toucher ; Chrome a la même fonction mais accepte
+// en général sans toucher. On essaie donc sans, et le bouton ne sert que si le navigateur refuse.
+const autorisationDemandee = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
+let demarre = false;
+async function demarrer(parToucher) {
+  if (demarre) return;
+  if (typeof DeviceMotionEvent === 'undefined') return etat('Ce navigateur ne donne pas accès aux mouvements', false);
+  if (autorisationDemandee) {
+    let rep;
+    try { rep = await DeviceMotionEvent.requestPermission(); } catch (err) { rep = 'erreur'; }
+    if (rep !== 'granted') {
+      if (!parToucher) { $('demarrer').textContent = 'Toucher pour démarrer'; return; }
+      return etat('Accès aux mouvements refusé : fermer l\'onglet, le rouvrir, puis Autoriser', false);
+    }
+  }
+  demarre = true;
+  window.addEventListener('devicemotion', surMouvement);
+  try { await navigator.wakeLock.request('screen'); } catch {}
+  $('demarrer').style.display = 'none';
+  $('flash').textContent = reglages.calibration ? 'Frappe !' : '…';
+  liaison = Liaison.telephone({ surEtat: etat });
+  setTimeout(() => { if (!recu) $('flash').textContent = 'Aucun capteur de mouvement sur cet appareil'; }, 2500);
+}
+$('demarrer').onclick = () => demarrer(true);
+const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+if (ios) $('demarrer').textContent = 'Toucher pour démarrer';   // ne pas risquer un refus mémorisé
+else demarrer(false);
+</script>
+</body>
+</html>
