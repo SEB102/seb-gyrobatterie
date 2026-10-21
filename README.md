@@ -1,4 +1,4 @@
-# GYRO-BATTERIE
+# SEB-GYROBATTERIE
 
 Le téléphone sert de baguette : chaque coup sec, dans n’importe quel sens, joue à tour de rôle **grosse caisse**, **cymbale**, grosse caisse, cymbale…
 Le gyroscope est lu dans une page web sur le téléphone, les coups partent vers l'ordinateur qui joue les sons (synthétisés, aucun fichier audio). La vitesse du geste règle le volume.
@@ -26,7 +26,7 @@ Sans le raccourci : `node serveur.js` puis `http://localhost:8080`. Nécessite N
 
 Les navigateurs ne nomment pas les axes de la même façon, certains anciens donnent des radians au lieu de degrés, et quelques téléphones n'ont pas de gyroscope (accéléromètre seul). Au premier lancement, la page demande donc 3 coups et en déduit l’axe et l’échelle. Bouton **Recalibrer** si on change de prise en main.
 
-- **Sensibilité** (0 à 100 %, 100 % = le geste le plus léger suffit) : réglable sur le téléphone **ou depuis l'ordinateur** (curseur sous la trace, appliqué à tous les téléphones connectés et à ceux qui arrivent). Le seuil apparaît en pointillés sur la trace.
+- **Sensibilité** (0 à 100 %, 100 % = le geste le plus léger suffit) : réglable **uniquement sur le téléphone** ; l'ordinateur l'affiche (« Sensibilité du téléphone ») et le seuil apparaît en pointillés sur la trace.
 
 Touches **B** et **H** sur l'ordinateur pour tester les sons sans téléphone.
 
@@ -37,7 +37,7 @@ Touches **B** et **H** sur l'ordinateur pour tester les sons sans téléphone.
 - Chaque téléphone reçoit un numéro, une couleur et deux sons (joués à tour de rôle ; mettre deux fois le même pour un son fixe), modifiables sur l'ordinateur. Le téléphone affiche son numéro et ses sons dans sa couleur.
 - 9 instruments : grosse caisse, caisse claire, clap, charleston fermé et ouvert, toms aigu et grave, cloche, cymbale.
 - Le téléphone garde son identité : après une coupure il retrouve sa place et ses sons. Un téléphone silencieux depuis 4 s est marqué absent.
-- Une seule sensibilité pour tous.
+- La sensibilité se règle sur chaque téléphone ; l'ordinateur l'affiche sur la carte du téléphone.
 - Testé avec 10 téléphones simulés en même temps ; pas encore avec de vrais téléphones ni sur un Wi-Fi public (qui isole souvent les appareils les uns des autres).
 
 ## Pourquoi pas le Bluetooth
@@ -51,6 +51,10 @@ Le coup part au sommet du geste (dès que la vitesse retombe), puis il faut reve
 ## Certificat (version locale)
 
 Créé au premier lancement (`cert.pem`, `cle.pem`, jamais publiés), recréé tout seul si l'adresse Wi-Fi change. Il respecte les règles Apple (825 jours maximum, usage serveur) : sans elles, l'iPhone refuse la page sans proposer de continuer.
+
+## Licence
+
+SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · [CC BY-NC 4.0](LICENSE) : partage et adaptation libres en citant l'auteur, sans usage commercial. PeerJS et qrcode-generator gardent leur licence MIT.
 
 ## Fichiers
 

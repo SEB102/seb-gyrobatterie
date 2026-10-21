@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gyro-batterie</title>
+<title>SEB-GYROBATTERIE</title>
 <style>
   :root { --fond: #111; --texte: #eee; --gc: #e8643c; --cy: #e8c43c; --doux: #888; --carte: #1c1c1c; }
   * { box-sizing: border-box; }
@@ -14,7 +14,8 @@
   #adresse { font: 15px ui-monospace, Menlo, monospace; background: var(--carte); padding: 10px 12px; border-radius: 8px; word-break: break-all; }
   #etat.ok { color: #6c6; }
   .sensibilite { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; color: var(--doux); }
-  .sensibilite input { flex: 1; }
+  .jauge-sens { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; overflow: hidden; }
+  .jauge-sens i { display: block; width: 0; height: 100%; background: #48f; }
   #vsensibilite { min-width: 3em; text-align: right; color: var(--texte); }
   .connexion { display: flex; gap: 16px; align-items: center; }
   .connexion > div:last-child { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -30,11 +31,14 @@
   #pgc.actif small, #pcy.actif small { color: #333; }
   canvas { width: 100%; height: 160px; background: var(--carte); border-radius: 12px; display: block; }
   @media (max-width: 500px) { .pad { height: 130px; font-size: 18px; } }
+  .cartouche { margin-top: 28px; border-top: 1px solid #2a2a2a; text-align: center; color: var(--doux); font-size: 12px; letter-spacing: .12em; line-height: 1.7; padding: 10px 12px 0; }
+  .cartouche a { color: #a9b6ff; text-decoration: underline; text-underline-offset: 3px; }
+  .cartouche a:hover { color: #fff; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Gyro-batterie</h1>
+  <h1>SEB-GYROBATTERIE</h1>
   <div class="connexion">
     <div id="qr"></div>
     <div>
@@ -51,16 +55,17 @@
   <div>
     <div class="doux" style="margin-bottom:6px">Vitesse de rotation reçue (pointillés = seuil de déclenchement)</div>
     <canvas id="trace"></canvas>
-    <label class="sensibilite">Sensibilité des téléphones
-      <input type="range" id="sensibilite" min="0" max="100" step="1"> <span id="vsensibilite"></span></label>
+    <div class="sensibilite">Sensibilité du téléphone <span class="jauge-sens"><i id="jsensibilite"></i></span> <span id="vsensibilite">—</span></div>
+    <div class="doux" style="margin-top:4px">Elle se règle sur le téléphone.</div>
   </div>
 </main>
+<footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/gyro-batterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/gyro-batterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
 
-<script src="detecteur.js?v=20261021c"></script>
-<script src="sons.js?v=20261021c"></script>
-<script src="qrcode.js?v=20261021c"></script>
-<script src="peerjs.min.js?v=20261021c"></script>
-<script src="liaison.js?v=20261021c"></script>
+<script src="detecteur.js?v=20261021d"></script>
+<script src="sons.js?v=20261021d"></script>
+<script src="qrcode.js?v=20261021d"></script>
+<script src="peerjs.min.js?v=20261021d"></script>
+<script src="liaison.js?v=20261021d"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -101,20 +106,12 @@ addEventListener('keydown', (e) => {
 // ---- Trace de la vitesse ----
 const histo = new Array(200).fill(0); let seuil = 250;
 
-// ---- Sensibilité : le curseur règle tous les téléphones ; il suit aussi les réglages faits sur un téléphone ----
-let seuilImpose = null;
+// ---- Sensibilité : affichée telle que réglée sur le téléphone (elle ne se règle que là) ----
 function majSeuil(s) {
   seuil = s;
-  if (document.activeElement === $("sensibilite")) return;   // ne pas contrarier un réglage en cours
   const p = Detecteur.seuilVersSensibilite(s);
-  $("sensibilite").value = p; $("vsensibilite").textContent = p + " %";
+  $('jsensibilite').style.width = p + '%'; $('vsensibilite').textContent = p + ' %';
 }
-majSeuil(seuil);
-$("sensibilite").oninput = (e) => {
-  seuilImpose = Detecteur.sensibiliteVersSeuil(Number(e.target.value));
-  seuil = seuilImpose; $("vsensibilite").textContent = e.target.value + " %";
-  liaison.envoyer({ reglage: { seuil: seuilImpose } });
-};
 const cv = $('trace'), g = cv.getContext('2d');
 function dessiner() {
   const w = cv.width = cv.clientWidth * devicePixelRatio, h = cv.height = cv.clientHeight * devicePixelRatio;
@@ -138,8 +135,6 @@ const liaison = Liaison.ordinateur({
   surMessage(d) {
     if (d.coup) jouer(d.coup, d.force);
     if (typeof d.v === 'number') { histo.push(d.v); histo.shift(); if (d.seuil) majSeuil(d.seuil); }
-    // Un téléphone qui arrive reçoit la sensibilité choisie ici (si on l'a réglée)
-    if (d.bonjour && seuilImpose) liaison.envoyer({ reglage: { seuil: seuilImpose }, pour: d.de });
   },
   surTelephones(n) { telephones = n; afficherTelephones(); },
   surAdresses: afficherAdresses,

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Gyro-batterie — téléphone</title>
+<title>SEB-GYROBATTERIE — téléphone</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Gyro-batterie">
+<meta name="apple-mobile-web-app-title" content="SEB-GYROBATTERIE">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#111111">
 <style>
@@ -27,10 +27,12 @@
   label { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--doux); }
   select, input[type=range] { flex: 1; font: inherit; }
   .reglages { display: flex; flex-direction: column; gap: 10px; }
+  .cartouche { margin-top: 8px; border-top: 1px solid #2a2a2a; text-align: center; color: var(--doux); font-size: 12px; letter-spacing: .12em; line-height: 1.7; padding: 10px 0 0; }
+  .cartouche a { color: #a9b6ff; text-decoration: underline; text-underline-offset: 3px; }
 </style>
 </head>
 <body>
-<h1 id="titre">Gyro-batterie</h1>
+<h1 id="titre">SEB-GYROBATTERIE</h1>
 <div id="etat">Non connecté</div>
 <button id="demarrer">Démarrer</button>
 <div id="flash">—</div>
@@ -44,16 +46,17 @@
   <label>Sensibilité <input type="range" id="seuil" min="0" max="100" step="1"> <span id="vseuil"></span></label>
 </div>
 
-<div id="version" style="font-size:11px;color:#555">version 2026-10-21c</div>
+<footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/gyro-batterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/gyro-batterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
+<div id="version" style="font-size:11px;color:#555">version 2026-10-21d</div>
 <script>
 // Toute erreur s'affiche à l'écran (pas de console sur un téléphone)
 const montrerErreur = (m) => { const e = document.getElementById('etat'); e.textContent = 'Erreur : ' + m; e.className = ''; e.style.color = '#e66'; };
 window.onerror = (msg, src, ligne) => montrerErreur(`${msg} (${(src || '').split('/').pop()}:${ligne})`);
 window.onunhandledrejection = (e) => montrerErreur(e.reason && e.reason.message || e.reason);
 </script>
-<script src="detecteur.js?v=20261021c"></script>
-<script src="peerjs.min.js?v=20261021c"></script>
-<script src="liaison.js?v=20261021c"></script>
+<script src="detecteur.js?v=20261021d"></script>
+<script src="peerjs.min.js?v=20261021d"></script>
+<script src="liaison.js?v=20261021d"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const memo = (() => { try { return JSON.parse(localStorage.getItem('gyro-batterie') || '{}'); } catch { return {}; } })();

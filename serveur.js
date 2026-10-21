@@ -136,7 +136,7 @@ function demarrer(port = PORT, { portHttp = PORT_HTTP, silencieux = false } = {}
   return Promise.all([ecouter(serveur, port), ecouter(serveurHttp, portHttp, '127.0.0.1')]).then(() => {
     if (!silencieux) {
       const p = serveur.address().port;
-      console.log('\n  GYRO-BATTERIE lancé\n');
+      console.log('\n  SEB-GYROBATTERIE lancé\n');
       console.log(`  Ordinateur : http://localhost:${serveurHttp.address().port}`);
       for (const ip of adressesLocales()) console.log(`  Téléphone  : https://${ip}:${p}/telephone.html`);
       console.log('\n  (sur le téléphone, accepter l\'avertissement de certificat la première fois)\n');

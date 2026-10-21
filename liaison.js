@@ -117,7 +117,7 @@
       peer = new Peer({ debug: 0 });
       peer.on('open', appeler);
       peer.on('error', (e) => {
-        if (e.type === 'peer-unavailable') reessayer('Ordinateur introuvable : la page Gyro-batterie y est-elle ouverte ?');
+        if (e.type === 'peer-unavailable') reessayer('Ordinateur introuvable : la page SEB-GYROBATTERIE y est-elle ouverte ?');
         else if (ERREURS_RESEAU.includes(e.type)) { peer.destroy(); reessayer('Pas de connexion Internet ? Nouvel essai…'); }
       });
     }

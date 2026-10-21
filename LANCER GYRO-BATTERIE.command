@@ -7,7 +7,7 @@ URL=http://localhost:8080
 if ! command -v node >/dev/null; then echo "Node.js introuvable : installer Node puis relancer."; read; exit 1; fi
 
 if curl -s -o /dev/null "$URL"; then
-  echo "GYRO-BATTERIE tourne déjà."
+  echo "SEB-GYROBATTERIE tourne déjà."
 else
   node serveur.js &
   SERVEUR=$!
@@ -24,6 +24,6 @@ else
 fi
 
 if [ -n "$SERVEUR" ]; then
-  echo "\n  Fermer cette fenêtre pour arrêter GYRO-BATTERIE.\n"
+  echo "\n  Fermer cette fenêtre pour arrêter SEB-GYROBATTERIE.\n"
   wait $SERVEUR
 fi

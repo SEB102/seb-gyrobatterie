@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gyro-batterie multi</title>
+<title>SEB-GYROBATTERIE multi</title>
 <style>
   :root { --fond: #111; --texte: #eee; --doux: #888; --carte: #1c1c1c; }
   * { box-sizing: border-box; }
@@ -18,8 +18,6 @@
   button { font: inherit; font-size: 16px; padding: 12px 18px; border: 0; border-radius: 10px; background: #2a6; color: #fff; cursor: pointer; }
   button.secondaire { background: #2a2a2a; color: var(--texte); font-size: 14px; padding: 8px 12px; }
   .barre { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
-  .sensibilite { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--doux); flex: 1; min-width: 260px; }
-  .sensibilite input { flex: 1; }
   #telephones { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
   .tel { background: var(--carte); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
          border-top: 6px solid var(--c); transition: background .35s; }
@@ -31,11 +29,14 @@
   .tel select { flex: 1; font: inherit; font-size: 14px; padding: 6px; background: #262626; color: var(--texte); border: 1px solid #333; border-radius: 6px; }
   .vide { color: var(--doux); font-size: 14px; padding: 30px; text-align: center; background: var(--carte); border-radius: 14px; }
   @media (max-width: 500px) { .connexion { flex-direction: column; align-items: stretch; } #qr svg { margin: 0 auto; } }
+  .cartouche { margin-top: 28px; border-top: 1px solid #2a2a2a; text-align: center; color: var(--doux); font-size: 12px; letter-spacing: .12em; line-height: 1.7; padding: 10px 12px 0; }
+  .cartouche a { color: #a9b6ff; text-decoration: underline; text-underline-offset: 3px; }
+  .cartouche a:hover { color: #fff; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Gyro-batterie <small>plusieurs téléphones · prototype</small></h1>
+  <h1>SEB-GYROBATTERIE <small>plusieurs téléphones · prototype</small></h1>
   <div class="connexion">
     <div id="qr"></div>
     <div>
@@ -46,19 +47,18 @@
   </div>
   <div class="barre">
     <button id="activer">Activer le son</button>
-    <label class="sensibilite">Sensibilité de tous les téléphones
-      <input type="range" id="sensibilite" min="0" max="100" step="1" value="73"> <span id="vsensibilite">73 %</span></label>
     <button class="secondaire" id="oublier">Oublier les téléphones absents</button>
   </div>
   <div id="telephones"><div class="vide">Aucun téléphone pour l'instant</div></div>
   <div class="doux">Chaque coup d'un téléphone joue à tour de rôle son son 1 puis son son 2 (choisir deux fois le même pour un son fixe).</div>
 </main>
+<footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/gyro-batterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/gyro-batterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
 
-<script src="detecteur.js?v=20261021c"></script>
-<script src="sons.js?v=20261021c"></script>
-<script src="qrcode.js?v=20261021c"></script>
-<script src="peerjs.min.js?v=20261021c"></script>
-<script src="liaison.js?v=20261021c"></script>
+<script src="detecteur.js?v=20261021d"></script>
+<script src="sons.js?v=20261021d"></script>
+<script src="qrcode.js?v=20261021d"></script>
+<script src="peerjs.min.js?v=20261021d"></script>
+<script src="liaison.js?v=20261021d"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -91,7 +91,7 @@ function telephone(id) {
   t.el = document.createElement('div');
   t.el.className = 'tel'; t.el.style.setProperty('--c', t.couleur);
   const choix = (i) => `<label>Son ${i + 1} <select data-i="${i}">${NOMS.map((n) => `<option${n === t.noms[i] ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`;
-  t.el.innerHTML = `<header><b>Téléphone ${t.numero}</b><span class="doux etat-tel"></span></header>${choix(0)}${choix(1)}`;
+  t.el.innerHTML = `<header><b>Téléphone ${t.numero}</b><span class="doux etat-tel"></span></header>${choix(0)}${choix(1)}<div class="doux sens-tel">Sensibilité : —</div>`;
   t.el.querySelectorAll('select').forEach((s) => s.onchange = () => {
     t.noms = [...t.noms]; t.noms[s.dataset.i] = s.value;
     memo[id].noms = t.noms; sauver(); envoyerAffichage(t);
@@ -124,14 +124,6 @@ $('oublier').onclick = () => {
   sauver(); ranger();
 };
 
-// ---- Sensibilité commune ----
-let seuilImpose = null;
-$('sensibilite').oninput = (e) => {
-  seuilImpose = Detecteur.sensibiliteVersSeuil(Number(e.target.value));
-  $('vsensibilite').textContent = e.target.value + ' %';
-  liaison.envoyer({ reglage: { seuil: seuilImpose } });
-};
-
 // ---- Réception ----
 const timers = new Map();
 const liaison = Liaison.ordinateur({
@@ -148,10 +140,8 @@ const liaison = Liaison.ordinateur({
     if (!d || !d.de) return;
     const t = telephone(d.de);
     t.vu = Date.now();
-    if (d.bonjour) {
-      envoyerAffichage(t);
-      if (seuilImpose) liaison.envoyer({ pour: t.id, reglage: { seuil: seuilImpose } });
-    }
+    if (d.bonjour) envoyerAffichage(t);
+    if (d.seuil) t.el.querySelector('.sens-tel').textContent = `Sensibilité : ${Detecteur.seuilVersSensibilite(d.seuil)} % (réglée sur le téléphone)`;
     if (d.coup) {
       const nom = t.noms[d.coup === 'grosse-caisse' ? 0 : 1];
       sons.instruments[nom](d.force);
