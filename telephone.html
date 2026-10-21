@@ -44,9 +44,16 @@
   <label>Sensibilité <input type="range" id="seuil" min="120" max="600" step="10"> <span id="vseuil"></span></label>
 </div>
 
-<script src="detecteur.js"></script>
-<script src="peerjs.min.js"></script>
-<script src="liaison.js"></script>
+<div id="version" style="font-size:11px;color:#555">version 2026-10-21b</div>
+<script>
+// Toute erreur s'affiche à l'écran (pas de console sur un téléphone)
+const montrerErreur = (m) => { const e = document.getElementById('etat'); e.textContent = 'Erreur : ' + m; e.className = ''; e.style.color = '#e66'; };
+window.onerror = (msg, src, ligne) => montrerErreur(`${msg} (${(src || '').split('/').pop()}:${ligne})`);
+window.onunhandledrejection = (e) => montrerErreur(e.reason && e.reason.message || e.reason);
+</script>
+<script src="detecteur.js?v=20261021b"></script>
+<script src="peerjs.min.js?v=20261021b"></script>
+<script src="liaison.js?v=20261021b"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const memo = (() => { try { return JSON.parse(localStorage.getItem('gyro-batterie') || '{}'); } catch { return {}; } })();
@@ -142,26 +149,37 @@ $('calibrer').onclick = lancerCalibration;
 // en général sans toucher. On essaie donc sans, et le bouton ne sert que si le navigateur refuse.
 const autorisationDemandee = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
 let demarre = false;
+// Une promesse qui ne répond jamais (certains navigateurs) ne doit pas tout bloquer
+const auPlusTard = (promesse, ms, valeur) => Promise.race([promesse, new Promise((r) => setTimeout(() => r(valeur), ms))]);
+
 async function demarrer(parToucher) {
   if (demarre) return;
-  if (typeof DeviceMotionEvent === 'undefined') return etat('Ce navigateur ne donne pas accès aux mouvements', false);
+  if (typeof DeviceMotionEvent === 'undefined') return mouvements('Ce navigateur ne donne pas accès aux mouvements');
   if (autorisationDemandee) {
+    if (parToucher) $('demarrer').textContent = 'Autorisation…';
     let rep;
-    try { rep = await DeviceMotionEvent.requestPermission(); } catch (err) { rep = 'erreur'; }
+    try { rep = await auPlusTard(DeviceMotionEvent.requestPermission(), parToucher ? 15000 : 1500, 'sans réponse'); }
+    catch (err) { rep = 'erreur : ' + (err && err.message); }
     if (rep !== 'granted') {
-      if (!parToucher) { $('demarrer').textContent = 'Toucher pour démarrer'; return; }
-      return etat('Accès aux mouvements refusé : fermer l\'onglet, le rouvrir, puis Autoriser', false);
+      $('demarrer').textContent = 'Toucher pour démarrer';
+      if (parToucher) mouvements(rep === 'denied'
+        ? 'Mouvements refusés : fermer l\'onglet, le rouvrir, puis Autoriser'
+        : 'Autorisation des mouvements : ' + rep);
+      return;
     }
   }
   demarre = true;
   window.addEventListener('devicemotion', surMouvement);
-  try { await navigator.wakeLock.request('screen'); } catch {}
+  try { navigator.wakeLock.request('screen').catch(() => {}); } catch {}   // sans attendre
   $('demarrer').style.display = 'none';
   $('flash').textContent = reglages.calibration ? 'Frappe !' : '…';
-  liaison = Liaison.telephone({ surEtat: etat });
-  setTimeout(() => { if (!recu) $('flash').textContent = 'Aucun capteur de mouvement sur cet appareil'; }, 2500);
+  setTimeout(() => { if (!recu) mouvements('Aucun mouvement reçu du capteur'); }, 2500);
 }
+const mouvements = (texte) => { $('flash').textContent = texte; $('flash').style.fontSize = '18px'; };
 $('demarrer').onclick = () => demarrer(true);
+
+// La connexion n'attend pas l'autorisation des mouvements : elle part dès l'ouverture
+liaison = Liaison.telephone({ surEtat: etat });
 const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 if (ios) $('demarrer').textContent = 'Toucher pour démarrer';   // ne pas risquer un refus mémorisé
 else demarrer(false);
