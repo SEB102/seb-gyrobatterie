@@ -9,7 +9,7 @@ Le gyroscope est lu dans une page web sur le téléphone, les coups partent vers
 
 **Téléphone** (iPhone ou Android) : scanner le QR code avec l'appareil photo. Aucun avertissement de sécurité. **L'ordinateur et les téléphones doivent être connectés au même réseau Wi-Fi.**
 - iPhone : toucher « Toucher pour démarrer » puis autoriser « Mouvement ». Android : démarre tout seul.
-- La première fois : **calibration guidée** : l'écran demande **2 coups secs vers le BAS, puis 2 vers le HAUT** (↓ ↓ ↑ ↑), en tenant le téléphone comme pour jouer. Elle recommence si les 4 coups ne sont pas tous nets.
+- La première fois : **calibration guidée** : l'écran demande **2 coups secs vers le HAUT, puis 2 vers le BAS** (↑ ↑ ↓ ↓), après un court « Prépare-toi », en tenant le téléphone comme pour jouer. Elle recommence si les 4 coups ne sont pas tous nets.
 - **Écran noir verrouillé** (bouton sur le téléphone) : écran entièrement noir, touchers ignorés, on continue de jouer ; **appui long de 2 s** pour revenir. L'écran reste allumé pendant le jeu.
 - **« Voulez-vous fermer l'onglet ? » quand on agite le téléphone** : fonction « Secouer pour annuler » de l'iPhone, à couper dans **Réglages → Accessibilité → Toucher → Secouer pour annuler**.
 - Pour la suite : ajouter la page à l'écran d'accueil (iPhone : Partager → « Sur l'écran d'accueil » ; Android : ⋮ → « Ajouter à l'écran d'accueil »). L'ordinateur garde le même code d'une fois sur l'autre, donc l'icône retrouve toujours le même ordinateur.
@@ -26,7 +26,7 @@ Sans le raccourci : `node serveur.js` puis `http://localhost:8080`. Nécessite N
 
 ## Calibration (sur le téléphone)
 
-Les navigateurs ne nomment pas les axes de la même façon, certains anciens donnent des radians au lieu de degrés, et quelques téléphones n'ont pas de gyroscope (accéléromètre seul). Au premier lancement, la calibration guidée demande 2 coups vers le bas puis 2 vers le haut : elle apprend l'axe de rotation, la force d'un coup et quel sens de rotation veut dire « bas ». Bouton **Refaire la calibration** si on change franchement de prise en main.
+Les navigateurs ne nomment pas les axes de la même façon, certains anciens donnent des radians au lieu de degrés, et quelques téléphones n'ont pas de gyroscope (accéléromètre seul). Au premier lancement, la calibration guidée demande 2 coups vers le haut puis 2 vers le bas : elle apprend l'axe de rotation, la force d'un coup et quel sens de rotation veut dire « bas ». Bouton **Refaire la calibration** si on change franchement de prise en main.
 
 - **Sensibilité** (0 à 100 %, **80 % par défaut**, 100 % = le geste le plus léger suffit) : réglable **uniquement sur le téléphone** ; l'ordinateur l'affiche (« Sensibilité du téléphone ») et le seuil apparaît en pointillés sur la trace.
 
@@ -54,7 +54,7 @@ Le coup part **dès que le geste dépasse le seuil**, sans attendre le sommet du
 
 ## Grosse caisse en bas, cymbale en haut
 
-Un coup **vers le bas** joue la grosse caisse, un coup **vers le haut** la cymbale. C'est le **sens de rotation du poignet** qui décide : un coup vers le bas plie toujours le poignet de la même façon, même bras levé. La calibration guidée (2 coups vers le bas, puis 2 vers le haut) apprend quel sens de rotation veut dire « bas » sur ce téléphone et avec cette tenue.
+Un coup **vers le bas** joue la grosse caisse, un coup **vers le haut** la cymbale. C'est le **sens de rotation du poignet** qui décide : un coup vers le bas plie toujours le poignet de la même façon, même bras levé. La calibration guidée (2 coups vers le haut, puis 2 vers le bas) apprend quel sens de rotation veut dire « bas » sur ce téléphone et avec cette tenue.
 
 Historique : une version précédente déduisait le sens de la gravité et d'un axe « baguette » appris. Sur un iPhone tenu debout dans la main (enregistrement du 21/10/2026), cet axe était presque vertical et la décision basculait toute seule au moindre mouvement (« tout devient grosse caisse ou cymbale » au bout de 20 à 30 s). Le sens de rotation, lui, reste juste même quand la tenue varie : vérifié en simulation jusqu'à 60° de rotation du téléphone dans la main et ±45° d'inclinaison, en mode « sommet » et « précoce ».
 
