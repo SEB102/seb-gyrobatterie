@@ -27,8 +27,8 @@
          justify-content: center; gap: 6px; font-size: 22px; font-weight: 600; transition: background .3s, transform .08s; cursor: pointer; }
   .pad small { font-size: 13px; font-weight: 400; color: var(--doux); }
   .pad.actif { transition: none; color: #111; transform: scale(.98); }
-  #pgc.actif { background: var(--gc); } #pcy.actif { background: var(--cy); }
-  #pgc.actif small, #pcy.actif small { color: #333; }
+  .pad.actif { background: var(--c); }
+  .pad.actif small { color: #333; }
   canvas { width: 100%; height: 160px; background: var(--carte); border-radius: 12px; display: block; }
   @media (max-width: 500px) { .pad { height: 130px; font-size: 18px; } }
   /* Tant que le navigateur bloque le son : voile sur toute la page, impossible à manquer */
@@ -52,13 +52,16 @@
     </div>
   </div>
   <div id="etat" class="doux">Aucun téléphone connecté</div>
+  <div class="doux">Au premier démarrage, le téléphone apprend tes 4 gestes (10 coups de chacun) ; l'ordinateur bipe pour guider : 1 bip l'écoute commence · 2 bips geste enregistré · 3 bips montants terminé.</div>
   <button id="activer">Son coupé par le navigateur<br><small>Cliquer n'importe où pour l'activer</small></button>
   <div class="pads">
-    <div class="pad" id="pgc">GROSSE CAISSE<small>coup vers le sol · touche B</small></div>
-    <div class="pad" id="pcy">CYMBALE<small>coup vers le plafond · touche H</small></div>
+    <div class="pad" id="p-bas" style="--c:#e8643c">GROSSE CAISSE<small>↓ coup vers le bas · touche B</small></div>
+    <div class="pad" id="p-haut" style="--c:#e8c43c">CYMBALE<small>↑ coup vers le haut · touche H</small></div>
+    <div class="pad" id="p-droite" style="--c:#4c9be8">CAISSE CLAIRE<small>→ coup vers la droite · touche D</small></div>
+    <div class="pad" id="p-gauche" style="--c:#b46be8">« OH ! »<small>← coup vers la gauche · touche G</small></div>
   </div>
   <div>
-    <div class="doux" style="margin-bottom:6px">Vitesse de rotation reçue (pointillés = seuil de déclenchement)</div>
+    <div class="doux" style="margin-bottom:6px">Vitesse de rotation reçue, tous axes (pointillés = seuil de déclenchement)</div>
     <canvas id="trace"></canvas>
     <div class="sensibilite">Sensibilité du téléphone <span class="jauge-sens"><i id="jsensibilite"></i></span> <span id="vsensibilite">—</span></div>
     <div class="doux" style="margin-top:4px">Elle se règle sur le téléphone.</div>
@@ -66,11 +69,11 @@
 </main>
 <footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/seb-gyrobatterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/seb-gyrobatterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
 
-<script src="detecteur.js?v=20261021p"></script>
-<script src="sons.js?v=20261021p"></script>
-<script src="qrcode.js?v=20261021p"></script>
-<script src="peerjs.min.js?v=20261021p"></script>
-<script src="liaison.js?v=20261021p"></script>
+<script src="detecteur.js?v=20261021s"></script>
+<script src="sons.js?v=20261021s"></script>
+<script src="qrcode.js?v=20261021s"></script>
+<script src="peerjs.min.js?v=20261021s"></script>
+<script src="liaison.js?v=20261021s"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -91,20 +94,31 @@ ctx.onstatechange = majSon; majSon();
 const debloquer = () => { if (ctx.state !== 'running') ctx.resume(); };
 addEventListener('pointerdown', debloquer); addEventListener('keydown', debloquer);
 
+// Un son par geste reconnu par le téléphone (« grosse-caisse » / « cymbale » : téléphones d'avant les 4 gestes)
+const SONS = { bas: 'Grosse caisse', haut: 'Cymbale', droite: 'Caisse claire', gauche: 'Wobble « Ho » (fermé)' };
+const ANCIENS = { 'grosse-caisse': 'bas', cymbale: 'haut' };
 const timers = {};
-function jouer(type, force) {
-  (type === 'grosse-caisse' ? sons.grosseCaisse : sons.cymbale)(force);
-  const pad = $(type === 'grosse-caisse' ? 'pgc' : 'pcy');
-  pad.classList.add('actif'); clearTimeout(timers[type]);
-  timers[type] = setTimeout(() => pad.classList.remove('actif'), 90);
+function jouer(geste, force) {
+  geste = ANCIENS[geste] || geste;
+  if (!SONS[geste]) return;
+  sons.instruments[SONS[geste]](force);
+  window.__coups && window.__coups.push(geste);   // pour les tests automatiques
+  const pad = $('p-' + geste);
+  pad.classList.add('actif'); clearTimeout(timers[geste]);
+  timers[geste] = setTimeout(() => pad.classList.remove('actif'), 90);
 }
-$('pgc').onclick = () => jouer('grosse-caisse', 0.7);
-$('pcy').onclick = () => jouer('cymbale', 0.7);
-addEventListener('keydown', (e) => {
-  if (e.repeat) return;
-  if (e.key === 'b' || e.key === 'B') jouer('grosse-caisse', 0.7);
-  if (e.key === 'h' || e.key === 'H') jouer('cymbale', 0.7);
-});
+for (const g of Object.keys(SONS)) $('p-' + g).onclick = () => jouer(g, 0.7);
+const TOUCHES = { b: 'bas', h: 'haut', d: 'droite', g: 'gauche' };
+addEventListener('keydown', (e) => { if (!e.repeat && TOUCHES[e.key.toLowerCase()]) jouer(TOUCHES[e.key.toLowerCase()], 0.7); });
+
+// Bips de l'apprentissage, envoyés par le téléphone (on apprend sans regarder l'écran)
+function bip(frequence = 880, debut = 0, duree = 0.09) {
+  const t = ctx.currentTime + debut, o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.value = frequence;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+  o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + duree + 0.02);
+}
+const BIPS = { debut: () => bip(880), gesteFini: () => { bip(660, 0); bip(660, 0.16); }, fin: () => { bip(523, 0); bip(659, 0.15); bip(784, 0.3, 0.18); } };
 
 // ---- Trace de la vitesse ----
 const histo = new Array(200).fill(0); let seuil = 250;
@@ -137,6 +151,7 @@ const afficherTelephones = () => {
 const liaison = Liaison.ordinateur({
   surMessage(d) {
     if (d.coup) jouer(d.coup, d.force);
+    if (d.bip && BIPS[d.bip]) { BIPS[d.bip](); window.__bips && window.__bips.push(d.bip); }
     if (typeof d.v === 'number') { histo.push(d.v); histo.shift(); if (d.seuil) majSeuil(d.seuil); }
   },
   surTelephones(n) { telephones = n; afficherTelephones(); },
