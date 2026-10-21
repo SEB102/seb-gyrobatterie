@@ -13,6 +13,9 @@
   .doux { color: var(--doux); font-size: 14px; }
   #adresse { font: 15px ui-monospace, Menlo, monospace; background: var(--carte); padding: 10px 12px; border-radius: 8px; word-break: break-all; }
   #etat.ok { color: #6c6; }
+  .sensibilite { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; color: var(--doux); }
+  .sensibilite input { flex: 1; }
+  #vsensibilite { min-width: 3em; text-align: right; color: var(--texte); }
   .connexion { display: flex; gap: 16px; align-items: center; }
   .connexion > div:last-child { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
   #qr svg { display: block; width: 150px; height: 150px; border-radius: 8px; }
@@ -48,13 +51,16 @@
   <div>
     <div class="doux" style="margin-bottom:6px">Vitesse de rotation reçue (pointillés = seuil de déclenchement)</div>
     <canvas id="trace"></canvas>
+    <label class="sensibilite">Sensibilité des téléphones
+      <input type="range" id="sensibilite" min="0" max="100" step="1"> <span id="vsensibilite"></span></label>
   </div>
 </main>
 
-<script src="sons.js?v=20261021b"></script>
-<script src="qrcode.js?v=20261021b"></script>
-<script src="peerjs.min.js?v=20261021b"></script>
-<script src="liaison.js?v=20261021b"></script>
+<script src="detecteur.js?v=20261021c"></script>
+<script src="sons.js?v=20261021c"></script>
+<script src="qrcode.js?v=20261021c"></script>
+<script src="peerjs.min.js?v=20261021c"></script>
+<script src="liaison.js?v=20261021c"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -94,6 +100,21 @@ addEventListener('keydown', (e) => {
 
 // ---- Trace de la vitesse ----
 const histo = new Array(200).fill(0); let seuil = 250;
+
+// ---- Sensibilité : le curseur règle tous les téléphones ; il suit aussi les réglages faits sur un téléphone ----
+let seuilImpose = null;
+function majSeuil(s) {
+  seuil = s;
+  if (document.activeElement === $("sensibilite")) return;   // ne pas contrarier un réglage en cours
+  const p = Detecteur.seuilVersSensibilite(s);
+  $("sensibilite").value = p; $("vsensibilite").textContent = p + " %";
+}
+majSeuil(seuil);
+$("sensibilite").oninput = (e) => {
+  seuilImpose = Detecteur.sensibiliteVersSeuil(Number(e.target.value));
+  seuil = seuilImpose; $("vsensibilite").textContent = e.target.value + " %";
+  liaison.envoyer({ reglage: { seuil: seuilImpose } });
+};
 const cv = $('trace'), g = cv.getContext('2d');
 function dessiner() {
   const w = cv.width = cv.clientWidth * devicePixelRatio, h = cv.height = cv.clientHeight * devicePixelRatio;
@@ -113,10 +134,12 @@ const afficherTelephones = () => {
   $('etat').textContent = telephones ? `Téléphone connecté${telephones > 1 ? ` (${telephones})` : ''}` : 'Aucun téléphone connecté';
   $('etat').className = telephones ? 'ok' : 'doux';
 };
-Liaison.ordinateur({
+const liaison = Liaison.ordinateur({
   surMessage(d) {
     if (d.coup) jouer(d.coup, d.force);
-    if (typeof d.v === 'number') { histo.push(d.v); histo.shift(); if (d.seuil) seuil = d.seuil; }
+    if (typeof d.v === 'number') { histo.push(d.v); histo.shift(); if (d.seuil) majSeuil(d.seuil); }
+    // Un téléphone qui arrive reçoit la sensibilité choisie ici (si on l'a réglée)
+    if (d.bonjour && seuilImpose) liaison.envoyer({ reglage: { seuil: seuilImpose }, pour: d.de });
   },
   surTelephones(n) { telephones = n; afficherTelephones(); },
   surAdresses: afficherAdresses,

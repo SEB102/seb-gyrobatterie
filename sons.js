@@ -53,7 +53,64 @@
       b.start(t); b.stop(t + Math.min(duree, 2));
     }
 
-    return { grosseCaisse, cymbale };
+    // ---- Autres instruments (prototype multi-téléphones) ----
+    // Enveloppe percussive : montée 2 ms, descente exponentielle
+    function enveloppe(t, v, duree) {
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(v, t + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+      g.connect(sortie);
+      return g;
+    }
+    function souffle(t, duree, type, frequence, q, destination) {
+      const b = ctx.createBufferSource(), f = ctx.createBiquadFilter();
+      b.buffer = bruit; f.type = type; f.frequency.value = frequence; f.Q.value = q || 1;
+      b.connect(f).connect(destination); b.start(t); b.stop(t + duree);
+    }
+    function tonal(t, de, a, glisse, duree, destination, type = 'sine') {
+      const o = ctx.createOscillator(); o.type = type;
+      o.frequency.setValueAtTime(de, t); o.frequency.exponentialRampToValueAtTime(a, t + glisse);
+      o.connect(destination); o.start(t); o.stop(t + duree);
+    }
+
+    function caisseClaire(force = 0.7) {
+      const t = ctx.currentTime, v = volume(force);
+      tonal(t, 330, 180, 0.05, 0.15, enveloppe(t, 0.5 * v, 0.12), 'triangle');
+      souffle(t, 0.25, 'highpass', 1500, 0.7, enveloppe(t, 0.7 * v, 0.22));
+    }
+    function tom(hauteur) {
+      return (force = 0.7) => {
+        const t = ctx.currentTime, v = volume(force);
+        tonal(t, hauteur * 1.6, hauteur, 0.18, 0.5, enveloppe(t, 0.9 * v, 0.45));
+      };
+    }
+    function charleston(ouvert) {
+      return (force = 0.7) => {
+        const t = ctx.currentTime, v = volume(force), duree = ouvert ? 0.6 : 0.07;
+        souffle(t, duree, 'highpass', 8000, 0.8, enveloppe(t, 0.45 * v, duree));
+      };
+    }
+    function clap(force = 0.7) {
+      const t = ctx.currentTime, v = volume(force);
+      for (const d of [0, 0.011, 0.023]) souffle(t + d, 0.02, 'bandpass', 1200, 1.5, enveloppe(t + d, 0.7 * v, 0.02));
+      souffle(t + 0.03, 0.25, 'bandpass', 1200, 1.5, enveloppe(t + 0.03, 0.5 * v, 0.2));
+    }
+    function cloche(force = 0.7) {
+      const t = ctx.currentTime, v = volume(force), sortieCloche = enveloppe(t, 0.25 * v, 0.6);
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2640; f.Q.value = 1;
+      f.connect(sortieCloche);
+      for (const fr of [587, 845]) tonal(t, fr, fr, 0.01, 0.6, f, 'square');
+    }
+
+    // Catalogue : nom affiché → fonction(force)
+    const instruments = {
+      'Grosse caisse': grosseCaisse, 'Caisse claire': caisseClaire, 'Clap': clap,
+      'Charleston fermé': charleston(false), 'Charleston ouvert': charleston(true),
+      'Tom aigu': tom(220), 'Tom grave': tom(110), 'Cloche': cloche, 'Cymbale': cymbale,
+    };
+
+    return { grosseCaisse, cymbale, instruments };
   }
   racine.creerSons = creerSons;
 })(this);

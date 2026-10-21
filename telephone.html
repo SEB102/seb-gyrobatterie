@@ -30,7 +30,7 @@
 </style>
 </head>
 <body>
-<h1>Gyro-batterie</h1>
+<h1 id="titre">Gyro-batterie</h1>
 <div id="etat">Non connecté</div>
 <button id="demarrer">Démarrer</button>
 <div id="flash">—</div>
@@ -41,19 +41,19 @@
 </div>
 <div class="reglages">
   <button id="calibrer" class="secondaire">Recalibrer (3 coups)</button>
-  <label>Sensibilité <input type="range" id="seuil" min="120" max="600" step="10"> <span id="vseuil"></span></label>
+  <label>Sensibilité <input type="range" id="seuil" min="0" max="100" step="1"> <span id="vseuil"></span></label>
 </div>
 
-<div id="version" style="font-size:11px;color:#555">version 2026-10-21b</div>
+<div id="version" style="font-size:11px;color:#555">version 2026-10-21c</div>
 <script>
 // Toute erreur s'affiche à l'écran (pas de console sur un téléphone)
 const montrerErreur = (m) => { const e = document.getElementById('etat'); e.textContent = 'Erreur : ' + m; e.className = ''; e.style.color = '#e66'; };
 window.onerror = (msg, src, ligne) => montrerErreur(`${msg} (${(src || '').split('/').pop()}:${ligne})`);
 window.onunhandledrejection = (e) => montrerErreur(e.reason && e.reason.message || e.reason);
 </script>
-<script src="detecteur.js?v=20261021b"></script>
-<script src="peerjs.min.js?v=20261021b"></script>
-<script src="liaison.js?v=20261021b"></script>
+<script src="detecteur.js?v=20261021c"></script>
+<script src="peerjs.min.js?v=20261021c"></script>
+<script src="liaison.js?v=20261021c"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const memo = (() => { try { return JSON.parse(localStorage.getItem('gyro-batterie') || '{}'); } catch { return {}; } })();
@@ -61,13 +61,27 @@ const reglages = { seuil: memo.seuil || 250, calibration: memo.calibration || nu
 const prochainSon = Detecteur.creerAlternance();   // grosse caisse, cymbale, grosse caisse…
 const sauver = () => { try { localStorage.setItem('gyro-batterie', JSON.stringify(reglages)); } catch {} };
 
-$('seuil').value = 720 - reglages.seuil; $('vseuil').textContent = reglages.seuil;
+// Sensibilité : réglable ici ou depuis l'ordinateur (curseur à droite = gestes plus légers)
+let detecteur;
+function appliquerSeuil(seuil) {
+  reglages.seuil = seuil; sauver();
+  detecteur = Detecteur.creerDetecteur({ seuil });
+  const p = Detecteur.seuilVersSensibilite(seuil);
+  $('seuil').value = p; $('vseuil').textContent = p + ' %';
+}
+appliquerSeuil(reglages.seuil);
+$('seuil').oninput = (e) => appliquerSeuil(Detecteur.sensibiliteVersSeuil(Number(e.target.value)));
 
-let detecteur = Detecteur.creerDetecteur({ seuil: reglages.seuil });
-$('seuil').oninput = (e) => {   // curseur à droite = plus sensible = seuil plus bas
-  reglages.seuil = 720 - Number(e.target.value); $('vseuil').textContent = reglages.seuil;
-  detecteur = Detecteur.creerDetecteur({ seuil: reglages.seuil }); sauver();
-};
+// Ce que l'ordinateur envoie : réglage de sensibilité, et (version multi) l'instrument de ce téléphone
+let affichage = null;   // { numero, couleur, noms: [son 1, son 2] }
+function surMessage(d) {
+  if (d.reglage && typeof d.reglage.seuil === 'number') appliquerSeuil(d.reglage.seuil);
+  if (d.affichage) {
+    affichage = d.affichage;
+    $('titre').textContent = `Téléphone ${affichage.numero} · ${[...new Set(affichage.noms)].join(' / ')}`;
+    $('titre').style.color = affichage.couleur;
+  }
+}
 
 let liaison = null;
 const envoyer = (o) => liaison && liaison.envoyer(o);
@@ -135,8 +149,8 @@ function surMouvement(e) {
     const son = prochainSon();   // le sens du geste ne compte plus
     envoyer({ coup: son, force: coup.force });
     const gc = son === 'grosse-caisse';
-    $('flash').textContent = gc ? 'GROSSE CAISSE' : 'CYMBALE';
-    $('flash').style.background = gc ? 'var(--gc)' : 'var(--cy)';
+    $('flash').textContent = affichage ? affichage.noms[gc ? 0 : 1].toUpperCase() : gc ? 'GROSSE CAISSE' : 'CYMBALE';
+    $('flash').style.background = affichage ? affichage.couleur : gc ? 'var(--gc)' : 'var(--cy)';
     $('flash').style.color = '#111';
     clearTimeout(timerFlash);
     timerFlash = setTimeout(() => { $('flash').style.background = ''; $('flash').style.color = ''; }, 150);
@@ -179,7 +193,7 @@ const mouvements = (texte) => { $('flash').textContent = texte; $('flash').style
 $('demarrer').onclick = () => demarrer(true);
 
 // La connexion n'attend pas l'autorisation des mouvements : elle part dès l'ouverture
-liaison = Liaison.telephone({ surEtat: etat });
+liaison = Liaison.telephone({ surEtat: etat, surMessage });
 const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 if (ios) $('demarrer').textContent = 'Toucher pour démarrer';   // ne pas risquer un refus mémorisé
 else demarrer(false);

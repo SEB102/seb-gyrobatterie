@@ -17,6 +17,7 @@ const FICHIERS = {   // seuls fichiers servis
   '/': ['index.html', 'text/html'],
   '/index.html': ['index.html', 'text/html'],
   '/telephone.html': ['telephone.html', 'text/html'],
+  '/multi.html': ['multi.html', 'text/html'],
   '/detecteur.js': ['detecteur.js', 'text/javascript'],
   '/sons.js': ['sons.js', 'text/javascript'],
   '/qrcode.js': ['qrcode.js', 'text/javascript'],
@@ -122,7 +123,7 @@ function demarrer(port = PORT, { portHttp = PORT_HTTP, silencieux = false } = {}
       brancher(socket, (m) => diffuser(ordinateurs, m), () => { telephones.delete(socket); etat(); });
     } else {
       ordinateurs.add(socket);
-      brancher(socket, () => {}, () => ordinateurs.delete(socket));
+      brancher(socket, (m) => diffuser(telephones, m), () => ordinateurs.delete(socket));
     }
     etat();
   }

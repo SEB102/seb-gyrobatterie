@@ -26,9 +26,19 @@ Sans le raccourci : `node serveur.js` puis `http://localhost:8080`. Nécessite N
 
 Les navigateurs ne nomment pas les axes de la même façon, certains anciens donnent des radians au lieu de degrés, et quelques téléphones n'ont pas de gyroscope (accéléromètre seul). Au premier lancement, la page demande donc 3 coups et en déduit l’axe et l’échelle. Bouton **Recalibrer** si on change de prise en main.
 
-- **Sensibilité** : seuil de déclenchement ; il apparaît en pointillés sur la trace de l'ordinateur.
+- **Sensibilité** (0 à 100 %, 100 % = le geste le plus léger suffit) : réglable sur le téléphone **ou depuis l'ordinateur** (curseur sous la trace, appliqué à tous les téléphones connectés et à ceux qui arrivent). Le seuil apparaît en pointillés sur la trace.
 
 Touches **B** et **H** sur l'ordinateur pour tester les sons sans téléphone.
+
+## Prototype : plusieurs téléphones, un son chacun
+
+Étude de faisabilité, pas encore la version de production : **https://seb102.github.io/gyro-batterie/multi.html** sur l'ordinateur ; chaque téléphone (iPhone et Android mélangés) scanne le même QR code.
+
+- Chaque téléphone reçoit un numéro, une couleur et deux sons (joués à tour de rôle ; mettre deux fois le même pour un son fixe), modifiables sur l'ordinateur. Le téléphone affiche son numéro et ses sons dans sa couleur.
+- 9 instruments : grosse caisse, caisse claire, clap, charleston fermé et ouvert, toms aigu et grave, cloche, cymbale.
+- Le téléphone garde son identité : après une coupure il retrouve sa place et ses sons. Un téléphone silencieux depuis 4 s est marqué absent.
+- Une seule sensibilité pour tous.
+- Testé avec 10 téléphones simulés en même temps ; pas encore avec de vrais téléphones ni sur un Wi-Fi public (qui isole souvent les appareils les uns des autres).
 
 ## Pourquoi pas le Bluetooth
 
@@ -44,10 +54,10 @@ Créé au premier lancement (`cert.pem`, `cle.pem`, jamais publiés), recréé t
 
 ## Fichiers
 
-- `index.html` : page ordinateur (son, pads, QR code, trace) · `telephone.html` : capteur, calibration, détection, envoi
+- `index.html` : page ordinateur (son, pads, QR code, trace, sensibilité) · `multi.html` : prototype plusieurs téléphones · `telephone.html` : capteur, calibration, détection, envoi
 - `liaison.js` : connexion téléphone → ordinateur, en ligne (WebRTC/PeerJS) ou locale (WebSocket), choisie selon l'adresse de la page (`?mode=local` / `?mode=enligne` pour forcer)
-- `detecteur.js` : détection des coups et calibration · `sons.js` : synthèse
+- `detecteur.js` : détection des coups et calibration · `sons.js` : synthèse (9 instruments)
 - `serveur.js` : serveur de la version locale (HTTPS téléphone + HTTP Mac + WebSocket, aucune dépendance npm)
 - `LANCER GYRO-BATTERIE.command` : lanceur de la version locale (le fichier du Bureau en est un lien)
 - `qrcode.js` (Kazuhiko Arase, MIT) · `peerjs.min.js` (PeerJS 1.5.5, MIT)
-- `test.js` : `node test.js` (23 tests : détection, alternance, calibration dans 5 configurations de capteur, relais, adresses, certificat)
+- `test.js` : `node test.js` (24 tests : détection, alternance, calibration dans 5 configurations de capteur, relais dans les deux sens, adresses, certificat)

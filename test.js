@@ -164,6 +164,19 @@ test('alternance : bas, bas, haut, bas, haut → GC, CY, GC, CY, GC (rebonds non
     assert.deepStrictEqual(r, message);
     ok++; console.log('OK   serveur : message du téléphone relayé à l\'ordinateur (HTTPS + WebSocket)');
 
+    // Sens inverse : réglage envoyé par l'ordinateur, reçu par tous les téléphones
+    const tel2 = await ouvrir(`wss://localhost:${port}/ws?role=telephone`);
+    const attendre = (ws) => Promise.race([
+      new Promise((res) => { ws.onmessage = (m) => res(JSON.parse(m.data)); }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('rien reçu par un téléphone')), 2000)),
+    ]);
+    const reglage = { reglage: { seuil: 330 }, pour: 'tel-abc' };
+    const recus = Promise.all([attendre(tel), attendre(tel2)]);
+    ordi.send(JSON.stringify(reglage));
+    for (const r of await recus) assert.deepStrictEqual(r, reglage);
+    tel2.close();
+    ok++; console.log('OK   serveur : message de l\'ordinateur relayé à tous les téléphones');
+
     const page = await fetch(`https://localhost:${port}/telephone.html`);
     assert.strictEqual(page.status, 200);
     const interdit = await fetch(`https://localhost:${port}/../serveur.js`);

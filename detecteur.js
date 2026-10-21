@@ -92,7 +92,12 @@
     return () => (n++ % 2 === 0 ? 'grosse-caisse' : 'cymbale');
   }
 
-  const api = { creerDetecteur, calibrer, creerAlternance, REGLAGES_DEFAUT };
+  // Sensibilité affichée en % (100 % = le geste le plus léger suffit) ↔ seuil de déclenchement
+  const SEUIL_MIN = 120, SEUIL_MAX = 600;
+  const seuilVersSensibilite = (s) => Math.round((SEUIL_MAX - s) / (SEUIL_MAX - SEUIL_MIN) * 100);
+  const sensibiliteVersSeuil = (p) => Math.round(SEUIL_MAX - Math.min(100, Math.max(0, p)) / 100 * (SEUIL_MAX - SEUIL_MIN));
+
+  const api = { creerDetecteur, calibrer, creerAlternance, seuilVersSensibilite, sensibiliteVersSeuil, REGLAGES_DEFAUT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else racine.Detecteur = api;
 })(this);
