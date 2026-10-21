@@ -5,7 +5,7 @@ Le gyroscope est lu dans une page web sur le téléphone, les coups partent vers
 
 ## Version en ligne (recommandée) — tout ordinateur, tout téléphone
 
-**Ordinateur** (Mac, Windows, Linux — Chrome, Edge, Firefox ou Safari) : ouvrir **https://seb102.github.io/gyro-batterie/**. Rien à installer. Cliquer une fois dans la page pour activer le son.
+**Ordinateur** (Mac, Windows, Linux — Chrome, Edge, Firefox ou Safari) : ouvrir **https://seb102.github.io/seb-gyrobatterie/**. Rien à installer. Cliquer une fois dans la page pour activer le son.
 
 **Téléphone** (iPhone ou Android) : scanner le QR code avec l'appareil photo. Aucun avertissement de sécurité. **L'ordinateur et les téléphones doivent être connectés au même réseau Wi-Fi.**
 - iPhone : toucher « Toucher pour démarrer » puis autoriser « Mouvement ». Android : démarre tout seul.
@@ -32,7 +32,7 @@ Touches **B** et **H** sur l'ordinateur pour tester les sons sans téléphone.
 
 ## Prototype : plusieurs téléphones, un son chacun
 
-Étude de faisabilité, pas encore la version de production : **https://seb102.github.io/gyro-batterie/multi.html** sur l'ordinateur ; chaque téléphone (iPhone et Android mélangés) scanne le même QR code.
+Étude de faisabilité, pas encore la version de production : **https://seb102.github.io/seb-gyrobatterie/multi.html** sur l'ordinateur ; chaque téléphone (iPhone et Android mélangés) scanne le même QR code.
 
 - Chaque téléphone reçoit un numéro, une couleur et deux sons (joués à tour de rôle ; mettre deux fois le même pour un son fixe), modifiables sur l'ordinateur. Le téléphone affiche son numéro et ses sons dans sa couleur.
 - 9 instruments : grosse caisse, caisse claire, clap, charleston fermé et ouvert, toms aigu et grave, cloche, cymbale.
