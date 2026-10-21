@@ -34,6 +34,8 @@
   /* Tant que le navigateur bloque le son : voile sur toute la page, impossible à manquer */
   #activer { position: fixed; inset: 0; z-index: 10; border-radius: 0; background: rgba(10, 10, 10, .88); color: #fff; font-size: 28px; font-weight: 600; line-height: 1.5; }
   #activer small { font-size: 18px; font-weight: 400; color: #e8c43c; }
+  .diagnostic { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  button.petit { font-size: 14px; padding: 8px 12px; background: #2a2a2a; color: var(--texte); }
   .reseau { font-size: 15px; font-weight: 600; color: #e8c43c; }
   .cartouche { margin-top: 28px; border-top: 1px solid #2a2a2a; text-align: center; color: var(--doux); font-size: 12px; letter-spacing: .12em; line-height: 1.7; padding: 10px 12px 0; }
   .cartouche a { color: #a9b6ff; text-decoration: underline; text-underline-offset: 3px; }
@@ -62,15 +64,16 @@
     <canvas id="trace"></canvas>
     <div class="sensibilite">Sensibilité du téléphone <span class="jauge-sens"><i id="jsensibilite"></i></span> <span id="vsensibilite">—</span></div>
     <div class="doux" style="margin-top:4px">Elle se règle sur le téléphone.</div>
+    <div class="diagnostic"><button class="petit" id="enregistrer">Enregistrer 10 s de gestes (diagnostic)</button> <span class="doux" id="etatEnreg"></span></div>
   </div>
 </main>
 <footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/seb-gyrobatterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/seb-gyrobatterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
 
-<script src="detecteur.js?v=20261021g"></script>
-<script src="sons.js?v=20261021g"></script>
-<script src="qrcode.js?v=20261021g"></script>
-<script src="peerjs.min.js?v=20261021g"></script>
-<script src="liaison.js?v=20261021g"></script>
+<script src="detecteur.js?v=20261021h"></script>
+<script src="sons.js?v=20261021h"></script>
+<script src="qrcode.js?v=20261021h"></script>
+<script src="peerjs.min.js?v=20261021h"></script>
+<script src="liaison.js?v=20261021h"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -128,6 +131,32 @@ function dessiner() {
 }
 dessiner();
 
+// ---- Diagnostic : le téléphone enregistre 10 s de mesures brutes, l'ordinateur en fait un fichier ----
+let enregistrement = null;   // { paquets: [], debut }
+$('enregistrer').onclick = () => {
+  if (!telephones) { $('etatEnreg').textContent = 'Connecte d\'abord le téléphone.'; return; }
+  enregistrement = { paquets: [], debut: Date.now() };
+  liaison.envoyer({ enregistrer: 10000 });
+  $('enregistrer').disabled = true;
+  const minuterie = setInterval(() => {
+    if (!enregistrement) return clearInterval(minuterie);
+    const reste = Math.ceil((10000 - (Date.now() - enregistrement.debut)) / 1000);
+    $('etatEnreg').textContent = reste > 0 ? `Fais tes gestes maintenant… ${reste} s` : 'Réception des mesures…';
+    if (Date.now() - enregistrement.debut > 25000) { clearInterval(minuterie); enregistrement = null; $('enregistrer').disabled = false; $('etatEnreg').textContent = 'Rien reçu du téléphone : recharge sa page et réessaie.'; }
+  }, 250);
+};
+function terminerEnregistrement(fin) {
+  const mesures = enregistrement.paquets.flat();
+  const manquants = fin.paquets - enregistrement.paquets.filter(Boolean).length;
+  const contenu = { app: 'SEB-GYROBATTERIE', date: new Date().toISOString(), paquetsManquants: manquants, ...fin, mesures };
+  const nom = `gyrobatterie-mesures-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.json`;
+  const lien = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(contenu)], { type: 'application/json' })), download: nom });
+  document.body.append(lien); lien.click(); lien.remove();
+  $('etatEnreg').textContent = `Fichier « ${nom} » enregistré (${mesures.length} mesures, ${fin.coups.length} coups${manquants ? `, ${manquants} paquets perdus` : ''}).`;
+  $('enregistrer').disabled = false;
+  enregistrement = null;
+}
+
 // ---- Réception (serveur local ou en ligne, voir liaison.js) ----
 let telephones = 0;
 const afficherTelephones = () => {
@@ -136,6 +165,8 @@ const afficherTelephones = () => {
 };
 const liaison = Liaison.ordinateur({
   surMessage(d) {
+    if (d.enreg && enregistrement) enregistrement.paquets[d.enreg.numero] = d.enreg.mesures;
+    if (d.enregFin && enregistrement) terminerEnregistrement(d.enregFin);
     if (d.coup) jouer(d.coup, d.force);
     if (typeof d.v === 'number') { histo.push(d.v); histo.shift(); if (d.seuil) majSeuil(d.seuil); }
   },

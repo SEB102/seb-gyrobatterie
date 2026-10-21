@@ -50,16 +50,16 @@
 </div>
 
 <footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/seb-gyrobatterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/seb-gyrobatterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
-<div id="version" style="font-size:11px;color:#555">version 2026-10-21g</div>
+<div id="version" style="font-size:11px;color:#555">version 2026-10-21h</div>
 <script>
 // Toute erreur s'affiche à l'écran (pas de console sur un téléphone)
 const montrerErreur = (m) => { const e = document.getElementById('etat'); e.textContent = 'Erreur : ' + m; e.className = ''; e.style.color = '#e66'; };
 window.onerror = (msg, src, ligne) => montrerErreur(`${msg} (${(src || '').split('/').pop()}:${ligne})`);
 window.onunhandledrejection = (e) => montrerErreur(e.reason && e.reason.message || e.reason);
 </script>
-<script src="detecteur.js?v=20261021g"></script>
-<script src="peerjs.min.js?v=20261021g"></script>
-<script src="liaison.js?v=20261021g"></script>
+<script src="detecteur.js?v=20261021h"></script>
+<script src="peerjs.min.js?v=20261021h"></script>
+<script src="liaison.js?v=20261021h"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const memo = (() => { try { return JSON.parse(localStorage.getItem('gyro-batterie') || '{}'); } catch { return {}; } })();
@@ -91,7 +91,30 @@ $('precoce').onchange = (e) => { reglages.precoce = e.target.checked; gains.leng
 
 // Ce que l'ordinateur envoie : réglage de sensibilité, et (version multi) l'instrument de ce téléphone
 let affichage = null;   // { numero, couleur, noms: [son 1, son 2] }
+// ---- Enregistrement de diagnostic, demandé par l'ordinateur : mesures brutes du capteur + coups détectés ----
+// Envoyé par paquets pendant l'enregistrement (un seul gros message serait trop lourd pour la liaison).
+let enreg = null;   // { fin, paquet, numero, coups }
+const arrondi = (o) => (o && Number.isFinite(o.x) ? [o.x, o.y, o.z].map((x) => Math.round(x * 1000) / 1000)
+  : o && [o.alpha, o.beta, o.gamma].some(Number.isFinite) ? [o.alpha, o.beta, o.gamma].map((x) => Math.round((x || 0) * 100) / 100) : null);
+function demarrerEnregistrement(ms) {
+  enreg = { fin: performance.now() + ms, paquet: [], numero: 0, coups: [] };
+  $('etat').textContent = 'Enregistrement des mesures pour l\'ordinateur…';
+}
+function enregistrer(e, t) {
+  if (!enreg) return;
+  enreg.paquet.push([Math.round(t), arrondi(e.rotationRate), arrondi(e.acceleration), arrondi(e.accelerationIncludingGravity),
+    e.interval, Math.round(verticale.vitesse() * 1000) / 1000]);
+  if (enreg.paquet.length >= 30 || t >= enreg.fin) { envoyer({ enreg: { numero: enreg.numero++, mesures: enreg.paquet } }); enreg.paquet = []; }
+  if (t >= enreg.fin) {
+    envoyer({ enregFin: { paquets: enreg.numero, coups: enreg.coups, reglages, appareil: navigator.userAgent,
+      colonnes: ['t (ms)', 'rotationRate [alpha, beta, gamma] °/s', 'acceleration [x, y, z] m/s²', 'accelerationIncludingGravity [x, y, z] m/s²', 'interval', 'vitesse verticale estimée (m/s, > 0 = vers le haut)'] } });
+    enreg = null;
+    $('etat').textContent = 'Enregistrement terminé';
+  }
+}
+
 function surMessage(d) {
+  if (d.enregistrer) demarrerEnregistrement(d.enregistrer);
   if (d.reglage && typeof d.reglage.seuil === 'number') appliquerSeuil(d.reglage.seuil);
   if (d.affichage) {
     affichage = d.affichage;
@@ -168,6 +191,7 @@ function surMouvement(e) {
   recu = true;
   const t = performance.now();
   verticale.ajouter(t, e.acceleration, e.accelerationIncludingGravity);
+  enregistrer(e, t);
   lu.axes.forEach((v, i) => {   // jauges : chaque axe relativement à son maximum
     maxAxes[i] = Math.max(maxAxes[i], Math.abs(v));
     const n = v / maxAxes[i], el = $('j' + i);
@@ -184,6 +208,7 @@ function surMouvement(e) {
     const s = verticale.sens();
     const son = s < 0 ? 'grosse-caisse' : s > 0 ? 'cymbale' : coup.type;
     envoyer({ coup: son, force: coup.force });
+    if (enreg) enreg.coups.push({ t: Math.round(t), son, sensVertical: s, sensRotation: coup.type, force: Math.round(coup.force * 100) / 100, pic: Math.round(coup.pic) });
     const gc = son === 'grosse-caisse';
     $('flash').textContent = affichage ? affichage.noms[gc ? 0 : 1].toUpperCase() : gc ? 'GROSSE CAISSE' : 'CYMBALE';
     $('flash').style.background = affichage ? affichage.couleur : gc ? 'var(--gc)' : 'var(--cy)';
