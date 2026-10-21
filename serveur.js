@@ -17,7 +17,6 @@ const FICHIERS = {   // seuls fichiers servis
   '/': ['index.html', 'text/html'],
   '/index.html': ['index.html', 'text/html'],
   '/telephone.html': ['telephone.html', 'text/html'],
-  '/multi.html': ['multi.html', 'text/html'],
   '/detecteur.js': ['detecteur.js', 'text/javascript'],
   '/sons.js': ['sons.js', 'text/javascript'],
   '/qrcode.js': ['qrcode.js', 'text/javascript'],

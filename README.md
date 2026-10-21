@@ -30,15 +30,9 @@ Les navigateurs ne nomment pas les axes de la même façon, certains anciens don
 
 Touches **B** et **H** sur l'ordinateur pour tester les sons sans téléphone.
 
-## Prototype : plusieurs téléphones, un son chacun
+## Plusieurs téléphones
 
-Étude de faisabilité, pas encore la version de production : **https://seb102.github.io/seb-gyrobatterie/multi.html** sur l'ordinateur ; chaque téléphone (iPhone et Android mélangés) scanne le même QR code.
-
-- Chaque téléphone reçoit un numéro, une couleur et deux sons (joués à tour de rôle ; mettre deux fois le même pour un son fixe), modifiables sur l'ordinateur. Le téléphone affiche son numéro et ses sons dans sa couleur.
-- 9 instruments : grosse caisse, caisse claire, clap, charleston fermé et ouvert, toms aigu et grave, cloche, cymbale.
-- Le téléphone garde son identité : après une coupure il retrouve sa place et ses sons. Un téléphone silencieux depuis 4 s est marqué absent.
-- La sensibilité se règle sur chaque téléphone ; l'ordinateur l'affiche sur la carte du téléphone.
-- Testé avec 10 téléphones simulés en même temps ; pas encore avec de vrais téléphones ni sur un Wi-Fi public (qui isole souvent les appareils les uns des autres).
+La version à plusieurs téléphones, chacun avec ses sons, est devenue une app à part : [SEB-MULTIGYRO-BATTERIE](https://github.com/SEB102/seb-multigyro-batterie) (https://seb102.github.io/seb-multigyro-batterie/).
 
 ## Pourquoi pas le Bluetooth
 
@@ -58,9 +52,9 @@ SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · [CC BY-NC 4.0](LICENSE) : 
 
 ## Fichiers
 
-- `index.html` : page ordinateur (son, pads, QR code, trace, sensibilité) · `multi.html` : prototype plusieurs téléphones · `telephone.html` : capteur, calibration, détection, envoi
+- `index.html` : page ordinateur (son, pads, QR code, trace, sensibilité) · `telephone.html` : capteur, calibration, détection, envoi
 - `liaison.js` : connexion téléphone → ordinateur, en ligne (WebRTC/PeerJS) ou locale (WebSocket), choisie selon l'adresse de la page (`?mode=local` / `?mode=enligne` pour forcer)
-- `detecteur.js` : détection des coups et calibration · `sons.js` : synthèse (9 instruments)
+- `detecteur.js` : détection des coups et calibration · `sons.js` : synthèse
 - `serveur.js` : serveur de la version locale (HTTPS téléphone + HTTP Mac + WebSocket, aucune dépendance npm)
 - `LANCER GYRO-BATTERIE.command` : lanceur de la version locale (le fichier du Bureau en est un lien)
 - `qrcode.js` (Kazuhiko Arase, MIT) · `peerjs.min.js` (PeerJS 1.5.5, MIT)
