@@ -52,7 +52,7 @@
     </div>
   </div>
   <div id="etat" class="doux">Aucun téléphone connecté</div>
-  <div class="doux">Au premier démarrage, le téléphone apprend tes 4 gestes (15 coups de chacun) ; l'ordinateur bipe pour guider : 1 bip l'écoute commence · 2 bips geste enregistré · 3 bips montants terminé.</div>
+  <div class="doux">Au premier démarrage, le téléphone apprend tes 4 gestes (15 coups de chacun) ; l'ordinateur bipe pour guider : 1 bip l'écoute commence · un petit bip aigu à chaque coup compté · 2 bips geste enregistré · 3 bips montants terminé.</div>
   <button id="activer">Son coupé par le navigateur<br><small>Cliquer n'importe où pour l'activer</small></button>
   <div class="pads">
     <div class="pad" id="p-bas" style="--c:#e8643c">GROSSE CAISSE<small>↓ coup vers le bas · touche B</small></div>
@@ -69,11 +69,11 @@
 </main>
 <footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/seb-gyrobatterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/seb-gyrobatterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
 
-<script src="detecteur.js?v=20261021t"></script>
-<script src="sons.js?v=20261021t"></script>
-<script src="qrcode.js?v=20261021t"></script>
-<script src="peerjs.min.js?v=20261021t"></script>
-<script src="liaison.js?v=20261021t"></script>
+<script src="detecteur.js?v=20261022a"></script>
+<script src="sons.js?v=20261022a"></script>
+<script src="qrcode.js?v=20261022a"></script>
+<script src="peerjs.min.js?v=20261022a"></script>
+<script src="liaison.js?v=20261022a"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -118,7 +118,7 @@ function bip(frequence = 880, debut = 0, duree = 0.09) {
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + duree);
   o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + duree + 0.02);
 }
-const BIPS = { debut: () => bip(880), gesteFini: () => { bip(660, 0); bip(660, 0.16); }, fin: () => { bip(523, 0); bip(659, 0.15); bip(784, 0.3, 0.18); } };
+const BIPS = { debut: () => bip(880), coup: () => bip(1320, 0, 0.04), gesteFini: () => { bip(660, 0); bip(660, 0.16); }, fin: () => { bip(523, 0); bip(659, 0.15); bip(784, 0.3, 0.18); } };
 
 // ---- Trace de la vitesse ----
 const histo = new Array(200).fill(0); let seuil = 250;
