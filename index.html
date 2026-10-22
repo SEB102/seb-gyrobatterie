@@ -22,7 +22,7 @@
   #qr svg { display: block; width: 150px; height: 150px; border-radius: 8px; }
   @media (max-width: 500px) { .connexion { flex-direction: column; align-items: stretch; } #qr svg { margin: 0 auto; } }
   button { font: inherit; font-size: 18px; padding: 14px 20px; border: 0; border-radius: 10px; background: #2a6; color: #fff; cursor: pointer; }
-  .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .pad { height: 180px; border-radius: 16px; background: var(--carte); display: flex; flex-direction: column; align-items: center;
          justify-content: center; gap: 6px; font-size: 22px; font-weight: 600; transition: background .3s, transform .08s; cursor: pointer; }
   .pad small { font-size: 13px; font-weight: 400; color: var(--doux); }
@@ -52,13 +52,12 @@
     </div>
   </div>
   <div id="etat" class="doux">Aucun téléphone connecté</div>
-  <div class="doux">Les 4 gestes sont prêts dès le départ ; pour les adapter à ta façon de jouer, « Réapprendre mes 4 gestes » sur le téléphone (50 coups de chacun) ; l'ordinateur bipe pour guider : 1 bip l'écoute commence · un petit bip aigu à chaque coup compté · 2 bips geste enregistré · 3 bips montants terminé.</div>
+  <div class="doux">Les 3 gestes sont prêts dès le départ ; pour les adapter à ta façon de jouer, « Réapprendre mes 3 gestes » sur le téléphone (10 coups de chacun) ; l'ordinateur bipe pour guider : 1 bip l'écoute commence · un petit bip aigu à chaque coup compté · 2 bips geste enregistré · 3 bips montants terminé.</div>
   <button id="activer">Son coupé par le navigateur<br><small>Cliquer n'importe où pour l'activer</small></button>
   <div class="pads">
     <div class="pad" id="p-bas" style="--c:#e8643c">GROSSE CAISSE<small>↓ coup vers le bas · touche B</small></div>
     <div class="pad" id="p-haut" style="--c:#e8c43c">CYMBALE<small>↑ coup vers le haut · touche H</small></div>
-    <div class="pad" id="p-droite" style="--c:#4c9be8">CAISSE CLAIRE<small>→ coup vers la droite · touche D</small></div>
-    <div class="pad" id="p-gauche" style="--c:#b46be8">« OH ! »<small>← coup vers la gauche · touche G</small></div>
+    <div class="pad" id="p-gauche" style="--c:#4c9be8">CAISSE CLAIRE<small>← coup vers la gauche · touche G</small></div>
   </div>
   <div>
     <div class="doux" style="margin-bottom:6px">Vitesse de rotation reçue, tous axes (pointillés = seuil de déclenchement)</div>
@@ -69,11 +68,11 @@
 </main>
 <footer class="cartouche">SEB-GYROBATTERIE · Sébastien Gay · Octobre 2026 · <a href="https://github.com/SEB102/seb-gyrobatterie#readme" target="_blank" rel="noopener">Mode d'emploi</a> · <a href="https://github.com/SEB102/seb-gyrobatterie/blob/main/LICENSE" target="_blank" rel="noopener">Licence CC BY-NC 4.0</a><br>Connexion : <a href="https://peerjs.com" target="_blank" rel="noopener">PeerJS</a> (MIT) · QR code : <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">qrcode-generator</a> par Kazuhiko Arase (MIT)</footer>
 
-<script src="detecteur.js?v=20261022o"></script>
-<script src="sons.js?v=20261022o"></script>
-<script src="qrcode.js?v=20261022o"></script>
-<script src="peerjs.min.js?v=20261022o"></script>
-<script src="liaison.js?v=20261022o"></script>
+<script src="detecteur.js?v=20261022r"></script>
+<script src="sons.js?v=20261022r"></script>
+<script src="qrcode.js?v=20261022r"></script>
+<script src="peerjs.min.js?v=20261022r"></script>
+<script src="liaison.js?v=20261022r"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -94,8 +93,8 @@ ctx.onstatechange = majSon; majSon();
 const debloquer = () => { if (ctx.state !== 'running') ctx.resume(); };
 addEventListener('pointerdown', debloquer); addEventListener('keydown', debloquer);
 
-// Un son par geste reconnu par le téléphone (« grosse-caisse » / « cymbale » : téléphones d'avant les 4 gestes)
-const SONS = { bas: 'Grosse caisse', haut: 'Cymbale', droite: 'Caisse claire', gauche: 'Wobble « Ho » (fermé)' };
+// Un son par geste reconnu par le téléphone (« grosse-caisse » / « cymbale » : téléphones d'avant les gestes appris ; « droite » d'un téléphone resté à l'ancienne version : ignoré)
+const SONS = { bas: 'Grosse caisse', haut: 'Cymbale', gauche: 'Caisse claire' };
 const ANCIENS = { 'grosse-caisse': 'bas', cymbale: 'haut' };
 const timers = {};
 function jouer(geste, force) {
@@ -108,7 +107,7 @@ function jouer(geste, force) {
   timers[geste] = setTimeout(() => pad.classList.remove('actif'), 90);
 }
 for (const g of Object.keys(SONS)) $('p-' + g).onclick = () => jouer(g, 0.7);
-const TOUCHES = { b: 'bas', h: 'haut', d: 'droite', g: 'gauche' };
+const TOUCHES = { b: 'bas', h: 'haut', g: 'gauche' };
 addEventListener('keydown', (e) => { if (!e.repeat && TOUCHES[e.key.toLowerCase()]) jouer(TOUCHES[e.key.toLowerCase()], 0.7); });
 
 // Bips de l'apprentissage, envoyés par le téléphone (on apprend sans regarder l'écran)
